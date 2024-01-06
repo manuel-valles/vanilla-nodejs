@@ -1,10 +1,48 @@
 // Dependencies
 const http = require('http');
+const https = require('https');
 const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
-const { port, envName } = require('./config');
+const fs = require('fs');
+const { httpPort, httpsPort, envName } = require('./config');
 
-const server = http.createServer((req, res) => {
+// Instantiate the HTTP server
+const httpServer = http.createServer((req, res) => unifiedServer(req, res));
+
+// Start the server
+httpServer.listen(httpPort, () => {
+  console.log(`Server listening on port ${httpPort} in ${envName} mode`);
+});
+
+// Instantiate the HTTPS server
+const httpsServerOptions = {
+  key: fs.readFileSync('./https/key.pem'),
+  cert: fs.readFileSync('./https/cert.pem'),
+};
+const httpsServer = https.createServer(httpsServerOptions, (req, res) => unifiedServer(req, res));
+
+// Start the HTTPS server
+httpsServer.listen(httpsPort, () => {
+  console.log(`Server listening on port ${httpsPort} in ${envName} mode`);
+});
+
+// Define the handlers
+const handlers = {};
+handlers.sample = (data, callback) => {
+  // Callback a http status code, and a payload object
+  callback(406, { 'name': 'sample handler' })
+};
+handlers.notFound = (data, callback) => {
+  callback(404);
+};
+
+// Define a request router (mapping between the path and the handler)
+const router = {
+  'sample': handlers.sample
+};
+
+// Handle http and https requests
+const unifiedServer = (req, res) => {
   // Get the URL and parse it
   const parsedUrl = url.parse(req.url, true);
 
@@ -19,7 +57,7 @@ const server = http.createServer((req, res) => {
   const method = req.method.toLowerCase();
 
   // Get the headers as an object
-  const headers = req.headers
+  const headers = req.headers;
 
   // Get the payload
   const decoder = new stringDecoder('utf-8');
@@ -60,24 +98,4 @@ const server = http.createServer((req, res) => {
       queryStringObject
     );
   });
-});
-
-// Start the server
-server.listen(port, () => {
-  console.log(`Server listening on port ${port} in ${envName} mode`);
-});
-
-// Define the handlers
-const handlers = {};
-handlers.sample = (data, callback) => {
-  // Callback a http status code, and a payload object
-  callback(406, { 'name': 'sample handler' })
-};
-handlers.notFound = (data, callback) => {
-  callback(404);
-};
-
-// Define a request router (mapping between the path and the handler)
-const router = {
-  'sample': handlers.sample
 };
