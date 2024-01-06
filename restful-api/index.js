@@ -2,6 +2,7 @@
 const http = require('http');
 const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
+const { port, envName } = require('./config');
 
 const server = http.createServer((req, res) => {
   // Get the URL and parse it
@@ -45,6 +46,7 @@ const server = http.createServer((req, res) => {
       payload = typeof payload === 'object' ? payload : {};
       const payloadString = JSON.stringify(payload);
       // Send the response
+      res.setHeader('Content-Type', 'application/json');
       res.writeHead(statusCode);
       res.end(payloadString);
 
@@ -60,11 +62,9 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-
 // Start the server
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+server.listen(port, () => {
+  console.log(`Server listening on port ${port} in ${envName} mode`);
 });
 
 // Define the handlers
