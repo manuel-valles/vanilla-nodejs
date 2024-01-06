@@ -5,6 +5,13 @@ const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
 const fs = require('fs');
 const { httpPort, httpsPort, envName } = require('./config');
+const { create, read, update, remove } = require('./lib/data');
+
+// Testing
+// create('test', 'newFile', { foo: 'bar' }, err => console.log({ err }));
+read('test', 'newFile', (err, data) => console.log({ err, data }));
+// update('test', 'newFile', { fizz: 'buzz' }, err => console.log({ err }));
+// remove('test', 'newFile', err => console.log({ err }));
 
 // Instantiate the HTTP server
 const httpServer = http.createServer((req, res) => unifiedServer(req, res));
@@ -32,13 +39,13 @@ handlers.sample = (data, callback) => {
   // Callback a http status code, and a payload object
   callback(406, { 'name': 'sample handler' })
 };
-handlers.notFound = (data, callback) => {
-  callback(404);
-};
+handlers.ping = (data, callback) => callback(200);
+handlers.notFound = (data, callback) => callback(404);
 
 // Define a request router (mapping between the path and the handler)
 const router = {
-  'sample': handlers.sample
+  sample: handlers.sample,
+  ping: handlers.ping,
 };
 
 // Handle http and https requests
