@@ -5,7 +5,7 @@ const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
 const fs = require('fs');
 const { httpPort, httpsPort, envName } = require('./lib/config');
-const { users, ping, notFound } = require('./lib/handlers');
+const { users, tokens, ping, notFound } = require('./lib/handlers');
 const { parseJsonToObject } = require('./lib/helpers');
 
 // Instantiate the HTTP server
@@ -31,6 +31,7 @@ httpsServer.listen(httpsPort, () => {
 // Define a request router (mapping between the path and the handler)
 const router = {
   users,
+  tokens,
   ping,
 };
 
@@ -80,8 +81,6 @@ const unifiedServer = (req, res) => {
       res.setHeader('Content-Type', 'application/json');
       res.writeHead(statusCode);
       res.end(payloadString);
-
-      console.log('Returning this response:', statusCode, payloadString);
     });
   });
 };
