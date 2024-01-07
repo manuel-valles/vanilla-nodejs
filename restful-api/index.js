@@ -4,7 +4,9 @@ const https = require('https');
 const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
 const fs = require('fs');
-const { httpPort, httpsPort, envName } = require('./config');
+const { httpPort, httpsPort, envName } = require('./lib/config');
+const { users, ping, notFound } = require('./lib/handlers');
+const { parseJsonToObject } = require('./lib/helpers');
 
 // Instantiate the HTTP server
 const httpServer = http.createServer((req, res) => unifiedServer(req, res));
@@ -26,19 +28,10 @@ httpsServer.listen(httpsPort, () => {
   console.log(`Server listening on port ${httpsPort} in ${envName} mode`);
 });
 
-// Define the handlers
-const handlers = {};
-handlers.sample = (data, callback) => {
-  // Callback a http status code, and a payload object
-  callback(406, { 'name': 'sample handler' })
-};
-handlers.ping = (data, callback) => callback(200);
-handlers.notFound = (data, callback) => callback(404);
-
 // Define a request router (mapping between the path and the handler)
 const router = {
-  sample: handlers.sample,
-  ping: handlers.ping,
+  users,
+  ping,
 };
 
 // Handle http and https requests
@@ -67,7 +60,7 @@ const unifiedServer = (req, res) => {
     payload += decoder.end();
 
     // Choose the handler
-    const chosenHandler = router[trimmedPath] ?? handlers.notFound;
+    const chosenHandler = router[trimmedPath] ?? notFound;
 
     // Construct the data object to send to the handler
     const data = {
@@ -75,7 +68,7 @@ const unifiedServer = (req, res) => {
       queryStringObject,
       method,
       headers,
-      payload
+      payload: parseJsonToObject(payload),
     };
 
     // Route the request to the handler specified in the router
@@ -90,12 +83,5 @@ const unifiedServer = (req, res) => {
 
       console.log('Returning this response:', statusCode, payloadString);
     });
-
-    console.log('Request received with the headers:', headers);
-    console.log('Request received with the payload:', payload);
-    console.log(
-      `Request received on path '${trimmedPath}' with method '${method}' and query string:`,
-      queryStringObject
-    );
   });
 };

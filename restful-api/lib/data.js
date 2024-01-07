@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { parseJsonToObject } = require('./helpers');
 
 const create = (dir, file, data, callback) => {
     // Open the file for writing
@@ -18,7 +19,11 @@ const create = (dir, file, data, callback) => {
     });
 }
 
-const read = (dir, file, callback) => fs.readFile(path.join(__dirname, '../.data', dir, `${file}.json`), 'utf8', (err, data) => callback(err, data));
+const read = (dir, file, callback) => fs.readFile(path.join(__dirname, '../.data', dir, `${file}.json`), 'utf8', (err, data) => {
+    if (err || !data) return callback(err);
+    const parsedData = parseJsonToObject(data);
+    callback(false, parsedData)
+});
 
 const update = (dir, file, data, callback) => {
     // Open the file for writing
