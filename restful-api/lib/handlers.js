@@ -31,20 +31,26 @@ _users.post = (data, callback) => {
 
 _users.get = (data, callback) => {
     const { phone } = data.queryStringObject;
+    const { token } = data.headers;
     const _phone = trimFieldIfValid(phone, 9);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
-    _data.read('users', _phone, (err, data) => {
-        if (err || !data) return callback(404);
-        // Remove sensitive data from response
-        delete data.hashedPassword;
-        callback(200, data);
+    const _token = typeof (token) === 'string' && token;
+    _tokens.verifyToken(_token, _phone, (tokenIsValid) => {
+        if (!tokenIsValid) return callback(403, { error: 'Missing required token in header, or token is invalid' });
+        _data.read('users', _phone, (err, data) => {
+            if (err || !data) return callback(404);
+            // Remove sensitive data from response
+            delete data.hashedPassword;
+            callback(200, data);
+        });
     });
 }
 
 _users.put = (data, callback) => {
     const { firstName, lastName, phone, password } = data.payload;
+    const { token } = data.headers;
     const _firstName = trimFieldIfValid(firstName);
     const _lastName = trimFieldIfValid(lastName);
     const _phone = trimFieldIfValid(phone, 9);
@@ -53,28 +59,40 @@ _users.put = (data, callback) => {
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
     if (!_firstName && !_lastName && !_password) return callback(400, { error: 'Missing fields to update' });
 
-    _data.read('users', _phone, (err, userData) => {
-        if (err || !userData) return callback(400, { error: 'The specified user does not exist' });
 
-        if (_firstName) userData.firstName = _firstName;
-        if (_lastName) userData.lastName = _lastName;
-        if (_password) userData.hashedPassword = hash(_password);
+    const _token = typeof (token) === 'string' && token;
+    _tokens.verifyToken(_token, _phone, (tokenIsValid) => {
+        if (!tokenIsValid) return callback(403, { error: 'Missing required token in header, or token is invalid' });
 
-        _data.update('users', _phone, userData, (err) => !err ? callback(200) : callback(500, { error: 'Could not update the user' }));
+        _data.read('users', _phone, (err, userData) => {
+            if (err || !userData) return callback(400, { error: 'The specified user does not exist' });
+
+            if (_firstName) userData.firstName = _firstName;
+            if (_lastName) userData.lastName = _lastName;
+            if (_password) userData.hashedPassword = hash(_password);
+
+            _data.update('users', _phone, userData, (err) => !err ? callback(200) : callback(500, { error: 'Could not update the user' }));
+        });
     });
 }
 
 _users.delete = (data, callback) => {
     const { phone } = data.queryStringObject;
+    const { token } = data.headers;
     const _phone = trimFieldIfValid(phone, 9);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
-    _data.read('users', _phone, (err, data) => {
-        if (err || !data) return callback(400, { error: 'The specified user does not exist' });
+    const _token = typeof (token) === 'string' && token;
+    _tokens.verifyToken(_token, _phone, (tokenIsValid) => {
+        if (!tokenIsValid) return callback(403, { error: 'Missing required token in header, or token is invalid' });
 
-        _data.remove('users', _phone, (err) => !err ? callback(200) : callback(500, { error: 'Could not delete the specified user' }));
-    });
+        _data.read('users', _phone, (err, data) => {
+            if (err || !data) return callback(400, { error: 'The specified user does not exist' });
+
+            _data.remove('users', _phone, (err) => !err ? callback(200) : callback(500, { error: 'Could not delete the specified user' }));
+        });
+    })
 }
 
 
@@ -147,6 +165,8 @@ _tokens.delete = (data, callback) => {
         _data.remove('tokens', id, (err) => !err ? callback(200) : callback(500, { error: 'Could not delete the specified token' }));
     });
 }
+
+_tokens.verifyToken = (id, phone, callback) => _data.read('tokens', id, (err, tokenData) => !err && tokenData && tokenData.phone === phone && tokenData.expires > Date.now() ? callback(true) : callback(false));
 
 const tokens = (data, callback) => {
     allowedMethods = ['post', 'get', 'put', 'delete'];
