@@ -4,8 +4,31 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const _data = require('./data');
+const _logs = require('./logs');
 const { trimStringIfValid, isValidProtocol, isValidMethod, isValidTimeoutSeconds, isValidState, isValidInteger, sendTwilioSms, isValidArray } = require('./helpers');
 
+const log = (originalCheckData, checkOutcome, state, alertWarranted, timeOfCheck) => {
+    // Form the log data
+    const logData = {
+        check: originalCheckData,
+        outcome: checkOutcome,
+        state,
+        alert: alertWarranted,
+        time: timeOfCheck
+    };
+
+    // Convert data to a string
+    const logString = JSON.stringify(logData);
+
+    // Determine the name of the log file
+    const logFileName = originalCheckData.id;
+
+    // Append the log string to the file
+    _logs.append(logFileName, logString, err => {
+        if (err) return console.error('Logging to file failed');
+        console.info('Logging to file succeeded');
+    });
+}
 
 const alertUserToStatusChange = newCheckData => {
     const { state, lastChecked, protocol, url, method, successCodes } = newCheckData;
@@ -16,17 +39,22 @@ const alertUserToStatusChange = newCheckData => {
     });
 }
 
-const processCheckOutcome = ({ error, responseCode }, originalCheckData) => {
+const processCheckOutcome = (checkOutcome, originalCheckData) => {
+    const { error, responseCode } = checkOutcome;
     // Decide if the check is considered up or down
     const state = !error && responseCode && originalCheckData.successCodes.includes(responseCode) ? 'up' : 'down';
 
     // Decide if an alert is warranted
     const alertWarranted = originalCheckData.lastChecked && originalCheckData.state !== state;
 
+    // Log the outcome
+    const timeOfCheck = Date.now();
+    log(originalCheckData, checkOutcome, state, alertWarranted, timeOfCheck);
+
     // Update the check data
     const newCheckData = originalCheckData;
     newCheckData.state = state;
-    newCheckData.lastChecked = Date.now();
+    newCheckData.lastChecked = timeOfCheck;
 
     // Save the updates
     _data.update('checks', newCheckData.id, newCheckData, err => {
@@ -125,19 +153,50 @@ const validateCheckData = originalCheckData => {
     performCheck(originalCheckData);
 }
 
-const startWorkers = () => setInterval(() =>
-    // Get all the checks
-    _data.list('checks', (err, checks) => {
-        if (err || !checks || checks.length === 0) return console.error('Could not find any checks to process');
-        checks.forEach(check => {
-            // Read in the check data
-            _data.read('checks', check, (err, originalCheckData) => {
-                if (err || !originalCheckData) return console.error('Could not read check data');
-                // Pass it to the check validator, and let that function continue or log errors as needed
-                validateCheckData(originalCheckData);
+const allChecks = () => _data.list('checks', (err, checks) => {
+    if (err || !checks || checks.length === 0) return console.error('Could not find any checks to process');
+    checks.forEach(check => {
+        // Read in the check data
+        _data.read('checks', check, (err, originalCheckData) => {
+            if (err || !originalCheckData) return console.error('Could not read check data');
+            // Pass it to the check validator, and let that function continue or log errors as needed
+            validateCheckData(originalCheckData);
+        });
+    });
+});
+
+const compressLogs = () => {
+    // List all the (non compressed) log files
+    _logs.list(false, (err, logs) => {
+        if (err || !logs || logs.length === 0) return console.error('Could not find any logs to compress');
+        logs.forEach(log => {
+            const logId = log.replace('.log', '');
+            const newFileId = `${logId}-${Date.now()}`;
+            _logs.compress(logId, newFileId, err => {
+                if (err) return console.error('Error compressing one of the log files', err);
+                _logs.truncate(logId, err => {
+                    if (err) return console.error('Error truncating log file', err);
+                    console.info('Success truncating log file');
+                });
             });
         });
-    }), 60 * 1000); // 1 minute
+    });
+}
+
+
+const startWorkers = () => {
+    // Execute all the checks immediately
+    allChecks();
+
+    // Execute all checks periodically (every minute)
+    setInterval(() => allChecks, 60 * 1000); // 1 minute
+
+    // Compress all the logs immediately
+    compressLogs();
+
+    // Compress all logs periodically (every 24 hours)
+    setInterval(() => compressLogs, 24 * 60 * 60 * 1000); // 24 hours
+}
 
 
 
