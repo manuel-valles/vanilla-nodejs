@@ -1,5 +1,7 @@
 const crypto = require('crypto');
-const { hashingSecret } = require('./config');
+const https = require('https');
+const querystring = require('querystring');
+const { hashingSecret, twilio } = require('./config');
 
 const hash = (str) => typeof (str) === 'string' && str.length > 0 && crypto.createHmac('sha256', hashingSecret).update(str).digest('hex');
 const parseJsonToObject = (str) => {
@@ -9,7 +11,50 @@ const parseJsonToObject = (str) => {
         return {};
     }
 }
-const trimStringIfValid = (field, minLength = 0) => typeof (field) === 'string' && field.trim().length > minLength && field.trim();
+const sendTwilioSms = (phone, msg, callback) => {
+    phone = trimStringIfValid(phone, 9, 10);
+    msg = trimStringIfValid(msg, 0, 1600);
+
+    if (!phone || !msg) return callback('Given parameters were missing or invalid');
+
+    const payload = {
+        From: twilio.fromPhone,
+        To: `+44${phone}`,
+        Body: msg
+    };
+
+    const stringPayload = querystring.stringify(payload);
+
+    const requestDetails = {
+        protocol: 'https:',
+        hostname: 'api.twilio.com',
+        method: 'POST',
+        path: `/2010-04-01/Accounts/${twilio.accountSid}/Messages.json`,
+        auth: `${twilio.accountSid}:${twilio.authToken}`,
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Length': Buffer.byteLength(stringPayload)
+        }
+    }
+
+    const req = https.request(requestDetails, ({ statusCode }) => statusCode === 200 || statusCode === 201 ? callback(false) : callback(`Status code returned was ${statusCode}`));
+
+    // Bind to the error event so it doesn't get thrown
+    req.on('error', (e) => callback(e));
+
+    // Add the payload
+    req.write(stringPayload);
+
+    // End the request
+    req.end();
+};
+
+
+const trimStringIfValid = (field, minLength = 0, maxLength = 0) => isValidString(field, minLength, maxLength) && field.trim();
+const isValidString = (field, minLength, maxLength) => typeof field === 'string' && field.trim().length > minLength && (maxLength > 0 ? field.trim().length <= maxLength : true);
+
+
+
 const isValidArray = (field) => typeof (field) === 'object' && field instanceof Array && field.length > 0;
 const isValidProtocol = (protocol) => typeof (protocol) === 'string' && ['http', 'https'].includes(protocol);
 const isValidMethod = (method) => typeof (method) === 'string' && ['post', 'get', 'put', 'delete'].includes(method);
@@ -24,5 +69,6 @@ module.exports = {
     isValidMethod,
     isValidArray,
     isValidTimeoutSeconds,
-    isValidUUID
+    isValidUUID,
+    sendTwilioSms
 };

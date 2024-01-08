@@ -1,7 +1,7 @@
 const { randomUUID } = require('crypto');
 const { maxChecks } = require('./config');
 const _data = require('./data');
-const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds, isValidUserChecks } = require('./helpers');
+const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds } = require('./helpers');
 
 
 const _users = {};
@@ -9,7 +9,7 @@ _users.post = (data, callback) => {
     const { firstName, lastName, phone, password, tosAgreement } = data.payload;
     const _firstName = trimStringIfValid(firstName);
     const _lastName = trimStringIfValid(lastName);
-    const _phone = trimStringIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9, 10);
     const _password = trimStringIfValid(password);
 
     if (!_firstName || !_lastName || !_phone || !_password || tosAgreement !== true) return callback(400, { error: 'Missing required fields' });
@@ -33,7 +33,7 @@ _users.post = (data, callback) => {
 _users.get = (data, callback) => {
     const { phone } = data.queryStringObject;
     const { token } = data.headers;
-    const _phone = trimStringIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9, 10);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
@@ -54,7 +54,7 @@ _users.put = (data, callback) => {
     const { token } = data.headers;
     const _firstName = trimStringIfValid(firstName);
     const _lastName = trimStringIfValid(lastName);
-    const _phone = trimStringIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9, 10);
     const _password = trimStringIfValid(password);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
@@ -79,14 +79,16 @@ _users.put = (data, callback) => {
 
 _users.delete = (data, callback) => {
     const { phone } = data.queryStringObject;
-    const { token } = data.headers;
-    const _phone = trimStringIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9, 10);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
+    const { token } = data.headers;
     const _token = typeof (token) === 'string' && token;
+    if (!_token) return callback(403, { error: 'Missing required token in headers' });
+
     _tokens.verifyToken(_token, _phone, (tokenIsValid) => {
-        if (!tokenIsValid) return callback(403, { error: 'Missing required token in header, or token is invalid' });
+        if (!tokenIsValid) return callback(403, { error: 'Invalid token' });
 
         _data.read('users', _phone, (err, data) => {
             if (err || !data) return callback(400, { error: 'The specified user does not exist' });
@@ -129,7 +131,7 @@ const _tokens = {};
 
 _tokens.post = (data, callback) => {
     const { phone, password } = data.payload;
-    const _phone = trimStringIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9, 10);
     const _password = trimStringIfValid(password);
 
     if (!_phone || !_password) return callback(400, { error: 'Missing required fields' });
