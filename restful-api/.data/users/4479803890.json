@@ -1,1 +1,10 @@
-{"firstName":"Manu","lastName":"Kem","phone":"4479803890","hashedPassword":"3488a42aaa8c88fa20d642ce5e24647b1a6c32862743d19c2bc11a10abeb5989","tosAgreement":true}
+{
+    "firstName": "Manu",
+    "lastName": "Kem",
+    "phone": "4479803890",
+    "hashedPassword": "3488a42aaa8c88fa20d642ce5e24647b1a6c32862743d19c2bc11a10abeb5989",
+    "tosAgreement": true,
+    "checks": [
+        "17ec9598-1e95-4147-953d-06980cc4768e"
+    ]
+}

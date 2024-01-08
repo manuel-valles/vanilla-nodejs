@@ -1,15 +1,16 @@
 const { randomUUID } = require('crypto');
+const { maxChecks } = require('./config');
 const _data = require('./data');
-const { hash, trimFieldIfValid, isValidUUID } = require('./helpers');
+const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds, isValidUserChecks } = require('./helpers');
 
 
 const _users = {};
 _users.post = (data, callback) => {
     const { firstName, lastName, phone, password, tosAgreement } = data.payload;
-    const _firstName = trimFieldIfValid(firstName);
-    const _lastName = trimFieldIfValid(lastName);
-    const _phone = trimFieldIfValid(phone, 9);
-    const _password = trimFieldIfValid(password);
+    const _firstName = trimStringIfValid(firstName);
+    const _lastName = trimStringIfValid(lastName);
+    const _phone = trimStringIfValid(phone, 9);
+    const _password = trimStringIfValid(password);
 
     if (!_firstName || !_lastName || !_phone || !_password || tosAgreement !== true) return callback(400, { error: 'Missing required fields' });
 
@@ -32,7 +33,7 @@ _users.post = (data, callback) => {
 _users.get = (data, callback) => {
     const { phone } = data.queryStringObject;
     const { token } = data.headers;
-    const _phone = trimFieldIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
@@ -51,10 +52,10 @@ _users.get = (data, callback) => {
 _users.put = (data, callback) => {
     const { firstName, lastName, phone, password } = data.payload;
     const { token } = data.headers;
-    const _firstName = trimFieldIfValid(firstName);
-    const _lastName = trimFieldIfValid(lastName);
-    const _phone = trimFieldIfValid(phone, 9);
-    const _password = trimFieldIfValid(password);
+    const _firstName = trimStringIfValid(firstName);
+    const _lastName = trimStringIfValid(lastName);
+    const _phone = trimStringIfValid(phone, 9);
+    const _password = trimStringIfValid(password);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
     if (!_firstName && !_lastName && !_password) return callback(400, { error: 'Missing fields to update' });
@@ -79,7 +80,7 @@ _users.put = (data, callback) => {
 _users.delete = (data, callback) => {
     const { phone } = data.queryStringObject;
     const { token } = data.headers;
-    const _phone = trimFieldIfValid(phone, 9);
+    const _phone = trimStringIfValid(phone, 9);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
@@ -90,7 +91,26 @@ _users.delete = (data, callback) => {
         _data.read('users', _phone, (err, data) => {
             if (err || !data) return callback(400, { error: 'The specified user does not exist' });
 
-            _data.remove('users', _phone, (err) => !err ? callback(200) : callback(500, { error: 'Could not delete the specified user' }));
+            _data.remove('users', _phone, (err) => {
+                if (err) return callback(500, { error: 'Could not delete the specified user' })
+
+                const userChecks = isValidArray(data.checks) ? data.checks : [];
+                const checksToDelete = userChecks.length;
+                if (checksToDelete === 0) return callback(200);
+
+                let checksDeleted = 0;
+                let deletionErrors = false;
+                userChecks.forEach(checkId => {
+                    _data.remove('checks', checkId, (err) => {
+                        if (err) deletionErrors = true;
+                        checksDeleted++;
+                        if (checksDeleted === checksToDelete) {
+                            if (!deletionErrors) return callback(200);
+                            callback(500, { error: 'Errors encountered while attempting to delete all of the user\'s checks' });
+                        }
+                    });
+                });
+            });
         });
     })
 }
@@ -109,8 +129,8 @@ const _tokens = {};
 
 _tokens.post = (data, callback) => {
     const { phone, password } = data.payload;
-    const _phone = trimFieldIfValid(phone, 9);
-    const _password = trimFieldIfValid(password);
+    const _phone = trimStringIfValid(phone, 9);
+    const _password = trimStringIfValid(password);
 
     if (!_phone || !_password) return callback(400, { error: 'Missing required fields' });
 
@@ -177,7 +197,151 @@ const tokens = (data, callback) => {
     }
 }
 
+const _checks = {};
+
+_checks.post = (data, callback) => {
+    const { protocol, url, method, successCodes, timeoutSeconds } = data.payload;
+    const _protocol = isValidProtocol(protocol) && protocol;
+    const _url = trimStringIfValid(url);
+    const _method = isValidMethod(method) && method;
+    const _successCodes = isValidArray(successCodes) && successCodes;
+    const _timeoutSeconds = isValidTimeoutSeconds(timeoutSeconds) && timeoutSeconds;
+
+    if (!_protocol || !_url || !_method || !_successCodes || !_timeoutSeconds) return callback(400, { error: 'Missing required inputs or inputs are invalid' });
+
+    const { token } = data.headers;
+    const _token = typeof (token) === 'string' && token;
+
+    if (!_token) return callback(403, { error: 'Missing required token in headers' });
+
+    _data.read('tokens', _token, (err, tokenData) => {
+        if (err || !tokenData) return callback(403, { error: 'Invalid token' });
+
+        const { phone } = tokenData;
+
+        _data.read('users', phone, (err, userData) => {
+            if (err || !userData) return callback(403);
+
+            const userChecks = isValidArray(userData.checks) ? userData.checks : [];
+            if (userChecks.length >= maxChecks) return callback(400, { error: `The user already has the maximum number of ${maxChecks} checks` });
+
+            const id = randomUUID();
+            const check = {
+                id,
+                phone,
+                protocol: _protocol,
+                url: _url,
+                method: _method,
+                successCodes: _successCodes,
+                timeoutSeconds: _timeoutSeconds
+            };
+
+            _data.create('checks', id, check, (err) => {
+                if (err) return callback(500, { error: 'Could not create the new check' });
+
+                userData.checks = userChecks;
+                userData.checks.push(id);
+                _data.update('users', phone, userData, (err) => !err ? callback(200, check) : callback(500, { error: 'Could not update the user with the new check' }));
+            });
+        });
+    });
+
+}
+
+_checks.get = (data, callback) => {
+    const { id } = data.queryStringObject;
+    if (!isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
+
+    const { token } = data.headers;
+    const _token = typeof (token) === 'string' && token;
+    if (!_token) return callback(403, { error: 'Missing required token in headers' });
+
+    _data.read('checks', id, (err, checkData) => {
+        if (err || !checkData) return callback(404);
+        _tokens.verifyToken(_token, checkData.phone, (tokenIsValid) => {
+            if (!tokenIsValid) return callback(403, { error: 'Invalid token' });
+            callback(200, checkData);
+        });
+    });
+}
+
+_checks.put = (data, callback) => {
+    const { id, protocol, url, method, successCodes, timeoutSeconds } = data.payload;
+    const _id = isValidUUID(id) && id;
+    const _protocol = isValidProtocol(protocol) && protocol;
+    const _url = trimStringIfValid(url);
+    const _method = isValidMethod(method) && method;
+    const _successCodes = isValidArray(successCodes) && successCodes;
+    const _timeoutSeconds = isValidTimeoutSeconds(timeoutSeconds) && timeoutSeconds;
+
+
+    if (!_id) return callback(400, { error: 'Missing required ID field' });
+    if (!_protocol && !_url && !_method && !_successCodes && !_timeoutSeconds) return callback(400, { error: 'Missing fields to update' });
+
+    const { token } = data.headers;
+    const _token = typeof (token) === 'string' && token;
+    if (!_token) return callback(403, { error: 'Missing required token in headers' });
+
+    _data.read('checks', _id, (err, checkData) => {
+        if (err || !checkData) return callback(400, { error: 'The specified check does not exist' });
+
+        _tokens.verifyToken(_token, checkData.phone, (tokenIsValid) => {
+            if (!tokenIsValid) return callback(403, { error: 'Invalid token' });
+
+            if (_protocol) checkData.protocol = _protocol;
+            if (_url) checkData.url = _url;
+            if (_method) checkData.method = _method;
+            if (_successCodes) checkData.successCodes = _successCodes;
+            if (_timeoutSeconds) checkData.timeoutSeconds = _timeoutSeconds;
+
+            _data.update('checks', _id, checkData, (err) => !err ? callback(200) : callback(500, { error: 'Could not update the check' }));
+        });
+    });
+}
+
+_checks.delete = (data, callback) => {
+    const { id } = data.queryStringObject;
+    if (!isValidUUID(id)) return callback(400, { error: 'Missing or invalid ID field' });
+
+    const { token } = data.headers;
+    const _token = typeof (token) === 'string' && token;
+    if (!_token) return callback(403, { error: 'Missing required token in headers' });
+
+    _data.read('checks', id, (err, checkData) => {
+        if (err || !checkData) return callback(400, { error: 'The specified check does not exist' });
+
+        _tokens.verifyToken(_token, checkData.phone, (tokenIsValid) => {
+            if (!tokenIsValid) return callback(403, { error: 'Invalid token' });
+
+            _data.remove('checks', id, (err) => {
+                if (err) return callback(500, { error: 'Could not delete the specified check' });
+
+                _data.read('users', checkData.phone, (err, userData) => {
+                    if (err || !userData) return callback(500, { error: 'Could not find the user who created the check' });
+
+                    const userChecks = isValidArray(userData.checks) ? userData.checks : [];
+                    const checkPosition = userChecks.indexOf(id);
+                    if (checkPosition === -1) return callback(500, { error: 'Could not find the check on the users object' });
+
+                    userData.checks.splice(checkPosition, 1);
+                    _data.update('users', checkData.phone, userData, (err) => !err ? callback(200) : callback(500, { error: 'Could not update the user' }));
+                });
+            });
+        });
+    });
+}
+
+const checks = (data, callback) => {
+    allowedMethods = ['post', 'get', 'put', 'delete'];
+    if (allowedMethods.indexOf(data.method) > -1) {
+        _checks[data.method](data, callback);
+    } else {
+        callback(405);
+    }
+}
+
+
 const ping = (data, callback) => callback(200);
 const notFound = (data, callback) => callback(404);
 
-module.exports = { users, tokens, ping, notFound };
+module.exports = { checks, users, tokens, ping, notFound };

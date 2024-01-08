@@ -5,7 +5,7 @@ const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
 const fs = require('fs');
 const { httpPort, httpsPort, envName } = require('./lib/config');
-const { users, tokens, ping, notFound } = require('./lib/handlers');
+const { checks, users, tokens, ping, notFound } = require('./lib/handlers');
 const { parseJsonToObject } = require('./lib/helpers');
 
 // Instantiate the HTTP server
@@ -30,6 +30,7 @@ httpsServer.listen(httpsPort, () => {
 
 // Define a request router (mapping between the path and the handler)
 const router = {
+  checks,
   users,
   tokens,
   ping,
