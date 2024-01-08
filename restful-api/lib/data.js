@@ -54,9 +54,17 @@ const remove = (dir, file, callback) => {
     });
 }
 
+const list = (dir, callback) => fs.readdir(path.join(__dirname, '../.data', dir), (err, data) => {
+    if (err || !data || data.length === 0) return callback(err, data);
+    const trimmedFileNames = [];
+    data.forEach(fileName => trimmedFileNames.push(fileName.replace('.json', '')));
+    callback(false, trimmedFileNames);
+});
+
 module.exports = {
     create,
     read,
     update,
     remove,
+    list
 };;

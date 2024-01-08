@@ -51,24 +51,26 @@ const sendTwilioSms = (phone, msg, callback) => {
 
 
 const trimStringIfValid = (field, minLength = 0, maxLength = 0) => isValidString(field, minLength, maxLength) && field.trim();
+
 const isValidString = (field, minLength, maxLength) => typeof field === 'string' && field.trim().length > minLength && (maxLength > 0 ? field.trim().length <= maxLength : true);
-
-
-
+const isValidInteger = (field) => typeof (field) === 'number' && field % 1 === 0 && field > 0;
 const isValidArray = (field) => typeof (field) === 'object' && field instanceof Array && field.length > 0;
 const isValidProtocol = (protocol) => typeof (protocol) === 'string' && ['http', 'https'].includes(protocol);
 const isValidMethod = (method) => typeof (method) === 'string' && ['post', 'get', 'put', 'delete'].includes(method);
 const isValidTimeoutSeconds = (timeoutSeconds) => typeof (timeoutSeconds) === 'number' && timeoutSeconds % 1 === 0 && timeoutSeconds >= 1 && timeoutSeconds <= 5;
+const isValidState = (state) => typeof (state) === 'string' && ['up', 'down'].includes(state);
 const isValidUUID = (uuid) => typeof (uuid) === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(uuid);
 
 module.exports = {
     hash,
     parseJsonToObject,
     trimStringIfValid,
+    isValidInteger,
     isValidProtocol,
     isValidMethod,
     isValidArray,
     isValidTimeoutSeconds,
     isValidUUID,
-    sendTwilioSms
+    sendTwilioSms,
+    isValidState
 };
