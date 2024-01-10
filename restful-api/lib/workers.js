@@ -3,6 +3,8 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const url = require('url');
+const util = require('util');
+const debug = util.debuglog('workers');
 const _data = require('./data');
 const _logs = require('./logs');
 const { trimStringIfValid, isValidProtocol, isValidMethod, isValidTimeoutSeconds, isValidState, isValidInteger, sendTwilioSms, isValidArray } = require('./helpers');
@@ -25,8 +27,8 @@ const log = (originalCheckData, checkOutcome, state, alertWarranted, timeOfCheck
 
     // Append the log string to the file
     _logs.append(logFileName, logString, err => {
-        if (err) return console.error('Logging to file failed');
-        console.info('Logging to file succeeded');
+        if (err) return debug('\x1b[31m%s\x1b[0m', 'Logging to file failed');
+        debug('\x1b[32m%s\x1b[0m', 'Logging to file succeeded');
     });
 }
 
@@ -34,8 +36,8 @@ const alertUserToStatusChange = newCheckData => {
     const { state, lastChecked, protocol, url, method, successCodes } = newCheckData;
     const msg = `Alert: Your check for ${method.toUpperCase()} ${protocol}://${url} is currently ${state}. Last checked: ${lastChecked}`;
     sendTwilioSms(newCheckData.phone, msg, err => {
-        if (err) return console.error('Could not send sms alert to user who had a state change in their check.', err);
-        console.info('Success: User was alerted to a status change in their check via sms', msg);
+        if (err) return debug('\x1b[31m%s\x1b[0m', 'Could not send sms alert to user who had a state change in their check.', err);
+        debug('Success: User was alerted to a status change in their check via sms', msg);
     });
 }
 
@@ -58,9 +60,9 @@ const processCheckOutcome = (checkOutcome, originalCheckData) => {
 
     // Save the updates
     _data.update('checks', newCheckData.id, newCheckData, err => {
-        if (err) return console.error('Error trying to save updates to one of the checks');
+        if (err) return debug('\x1b[31m%s\x1b[0m', 'Error trying to save updates to one of the checks');
         if (alertWarranted) return alertUserToStatusChange(newCheckData);
-        console.info('Check outcome has not changed, no alert needed');
+        debug('\x1b[33m%s\x1b[0m', 'Check outcome has not changed, no alert needed');
     });
 }
 
@@ -148,17 +150,17 @@ const validateCheckData = originalCheckData => {
     const requiredKeys = ['id', 'phone', 'protocol', 'url', 'method', 'successCodes', 'timeoutSeconds'];
 
     // If all the checks pass, pass the data along to the next step in the process
-    if (requiredKeys.some(key => !originalCheckData[key])) return console.error('One of the checks is not properly formatted. Skipping it!');
+    if (requiredKeys.some(key => !originalCheckData[key])) return debug('\x1b[31m%s\x1b[0m', 'One of the checks is not properly formatted. Skipping it!');
 
     performCheck(originalCheckData);
 }
 
 const allChecks = () => _data.list('checks', (err, checks) => {
-    if (err || !checks || checks.length === 0) return console.error('Could not find any checks to process');
+    if (err || !checks || checks.length === 0) return debug('\x1b[31m%s\x1b[0m', 'Could not find any checks to process');
     checks.forEach(check => {
         // Read in the check data
         _data.read('checks', check, (err, originalCheckData) => {
-            if (err || !originalCheckData) return console.error('Could not read check data');
+            if (err || !originalCheckData) return debug('\x1b[31m%s\x1b[0m', 'Could not read check data');
             // Pass it to the check validator, and let that function continue or log errors as needed
             validateCheckData(originalCheckData);
         });
@@ -168,15 +170,15 @@ const allChecks = () => _data.list('checks', (err, checks) => {
 const compressLogs = () => {
     // List all the (non compressed) log files
     _logs.list(false, (err, logs) => {
-        if (err || !logs || logs.length === 0) return console.error('Could not find any logs to compress');
+        if (err || !logs || logs.length === 0) return debug('\x1b[31m%s\x1b[0m', 'Could not find any logs to compress');
         logs.forEach(log => {
             const logId = log.replace('.log', '');
             const newFileId = `${logId}-${Date.now()}`;
             _logs.compress(logId, newFileId, err => {
-                if (err) return console.error('Error compressing one of the log files', err);
+                if (err) return debug('\x1b[31m%s\x1b[0m', 'Error compressing one of the log files', err);
                 _logs.truncate(logId, err => {
-                    if (err) return console.error('Error truncating log file', err);
-                    console.info('Success truncating log file');
+                    if (err) return debug('\x1b[31m%s\x1b[0m', 'Error truncating log file', err);
+                    debug('\x1b[32m%s\x1b[0m', 'Success truncating log file');
                 });
             });
         });
@@ -185,17 +187,18 @@ const compressLogs = () => {
 
 
 const startWorkers = () => {
+    console.log('\x1b[33m%s\x1b[0m', 'Background workers are running')
     // Execute all the checks immediately
     allChecks();
 
     // Execute all checks periodically (every minute)
-    setInterval(() => allChecks, 60 * 1000); // 1 minute
+    setInterval(() => allChecks, 60 * 1000);
 
     // Compress all the logs immediately
     compressLogs();
 
     // Compress all logs periodically (every 24 hours)
-    setInterval(() => compressLogs, 24 * 60 * 60 * 1000); // 24 hours
+    setInterval(() => compressLogs, 24 * 60 * 60 * 1000);
 }
 
 

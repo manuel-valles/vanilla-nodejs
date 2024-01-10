@@ -5,6 +5,8 @@ const url = require('url');
 const stringDecoder = require('string_decoder').StringDecoder;
 const fs = require('fs');
 const path = require('path');
+const util = require('util');
+const debug = util.debuglog('server');
 const { httpPort, httpsPort, envName } = require('./config');
 const { checks, users, tokens, ping, notFound } = require('./handlers');
 const { parseJsonToObject } = require('./helpers');
@@ -73,6 +75,11 @@ const unifiedServer = (req, res) => {
             res.setHeader('Content-Type', 'application/json');
             res.writeHead(statusCode);
             res.end(payloadString);
+
+            statusCode === 200
+                ? debug('\x1b[32m%s\x1b[0m', `${method.toUpperCase()} /${trimmedPath} ${statusCode}`)
+                : debug('\x1b[31m%s\x1b[0m', `${method.toUpperCase()} /${trimmedPath} ${statusCode}`);
+
         });
     });
 };
@@ -80,12 +87,12 @@ const unifiedServer = (req, res) => {
 const startServer = () => {
     // Start the server
     httpServer.listen(httpPort, () => {
-        console.log(`Server listening on port ${httpPort} in ${envName} mode`);
+        console.log('\x1b[34m%s\x1b[0m', `Server listening on port ${httpPort} in ${envName} mode`);
     });
 
     // Start the HTTPS server
     httpsServer.listen(httpsPort, () => {
-        console.log(`Server listening on port ${httpsPort} in ${envName} mode`);
+        console.log('\x1b[30m%s\x1b[0m', `Server listening on port ${httpsPort} in ${envName} mode`);
     });
 }
 

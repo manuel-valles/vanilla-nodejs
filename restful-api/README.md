@@ -42,3 +42,9 @@ const { sendTwilioSms } = require('./lib/helpers');
 // Test external API - Use the Twilio phone
 sendTwilioSms('***', 'Hello!', (err) => console.log(err));
 ```
+
+## How to run debug mode
+```bash
+NODE_ENV=staging NODE_DEBUG=workers,server nodemon .
+```
+> NOTE: You can add some default NodeJS debugging events to the `NODE_DEBUG` environment variable. For example, `NODE_DEBUG=http,https` will enable the `http`, and `https` debugging events.
