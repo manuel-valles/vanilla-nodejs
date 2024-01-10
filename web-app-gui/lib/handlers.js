@@ -1,9 +1,19 @@
 const { randomUUID } = require('crypto');
 const { maxChecks } = require('./config');
 const _data = require('./data');
-const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds } = require('./helpers');
+const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds, getTemplate } = require('./helpers');
 
+// HTML handlers
+const index = (data, callback) => {
+    if (data.method !== 'get') return callback(405, undefined, 'html');
 
+    getTemplate('index', (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+        callback(200, str, 'html');
+    });
+}
+
+// JSON API handlers
 const _users = {};
 _users.post = (data, callback) => {
     const { firstName, lastName, phone, password, tosAgreement } = data.payload;
@@ -346,4 +356,4 @@ const checks = (data, callback) => {
 const ping = (data, callback) => callback(200);
 const notFound = (data, callback) => callback(404);
 
-module.exports = { checks, users, tokens, ping, notFound };
+module.exports = { checks, index, notFound, ping, users, tokens };

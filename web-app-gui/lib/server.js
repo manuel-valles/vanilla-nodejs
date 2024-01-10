@@ -8,7 +8,7 @@ const path = require('path');
 const util = require('util');
 const debug = util.debuglog('server');
 const { httpPort, httpsPort, envName } = require('./config');
-const { checks, users, tokens, ping, notFound } = require('./handlers');
+const { checks, index, notFound, ping, users, tokens } = require('./handlers');
 const { parseJsonToObject } = require('./helpers');
 
 // Instantiate the HTTP server
@@ -23,11 +23,22 @@ const httpsServer = https.createServer(httpsServerOptions, (req, res) => unified
 
 // Define a request router (mapping between the path and the handler)
 const router = {
-    checks,
-    users,
-    tokens,
     ping,
-};
+    '': index,
+    'api/checks': checks,
+    'api/users': users,
+    'api/tokens': tokens,
+    // TODO: add handlers for the following routes
+    // 'account/create': accountCreate,
+    // 'account/edit': accountEdit,
+    // 'account/deleted': accountDeleted,
+    // 'session/create': sessionCreate,
+    // 'session/deleted': sessionDeleted,
+    // 'checks/all': checksList,
+    // 'checks/create': checksCreate,
+    // 'checks/edit': checksEdit,
+}
+
 
 // Handle http and https requests
 const unifiedServer = (req, res) => {
@@ -67,12 +78,20 @@ const unifiedServer = (req, res) => {
         };
 
         // Route the request to the handler specified in the router
-        chosenHandler(data, (statusCode, payload) => {
+        chosenHandler(data, (statusCode, payload, contentType = 'json') => {
             statusCode = typeof statusCode === 'number' ? statusCode : 200;
-            payload = typeof payload === 'object' ? payload : {};
-            const payloadString = JSON.stringify(payload);
+            let payloadString = '';
+
+            if (contentType === 'json') {
+                res.setHeader('Content-Type', 'application/json');
+                payload = typeof payload === 'object' ? payload : {};
+                payloadString = JSON.stringify(payload);
+            } else if (contentType === 'html') {
+                res.setHeader('Content-Type', 'text/html');
+                payloadString = typeof payload === 'string' ? payload : '';
+            }
+
             // Send the response
-            res.setHeader('Content-Type', 'application/json');
             res.writeHead(statusCode);
             res.end(payloadString);
 
