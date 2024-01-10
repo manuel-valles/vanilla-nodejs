@@ -3,9 +3,11 @@ const https = require('https');
 const querystring = require('querystring');
 const path = require('path');
 const fs = require('fs');
-const { hashingSecret, twilio } = require('./config');
+const { hashingSecret, templateGlobals, twilio } = require('./config');
 
-// Helpers functions
+/*
+ * Helper functions
+ */
 const hash = (str) => typeof (str) === 'string' && str.length > 0 && crypto.createHmac('sha256', hashingSecret).update(str).digest('hex');
 const parseJsonToObject = (str) => {
     try {
@@ -52,20 +54,67 @@ const sendTwilioSms = (phone, msg, callback) => {
     req.end();
 };
 
-const getTemplate = (templateName, callback) => {
+// Take a given string and a data object and find/replace all the keys within it
+const interpolate = (str, data) => {
+    str = trimStringIfValid(str);
+    if (!str) return '';
+
+    data = typeof (data) === 'object' && data !== null ? data : {};
+
+    // Add the templateGlobals to the data object, prepending their key name with "global."
+    Object.keys(templateGlobals).forEach((keyName) => data[`global.${keyName}`] = templateGlobals[keyName]);
+
+    // For each key in the data object, insert its value into the string at the corresponding placeholder
+    Object.keys(data).forEach((key) => {
+        if (typeof (data[key]) === 'string') {
+            const replace = data[key];
+            const find = `{${key}}`;
+            str = str.replace(find, replace);
+        }
+    });
+
+    return str;
+};
+
+// Get the string content of a template, and use provided data for string interpolation
+const getTemplate = (templateName, data, callback) => {
     templateName = trimStringIfValid(templateName);
+    data = typeof (data) === 'object' && data !== null ? data : {};
     if (!templateName) return callback('A valid template name was not specified');
 
     fs.readFile(path.join(__dirname, '../templates/', `${templateName}.html`), 'utf8', (err, str) => {
         if (err || !str || str.length === 0) return callback('No template could be found');
 
-        callback(false, str);
+        // Do interpolation on the string
+        const finalString = interpolate(str, data);
+        callback(false, finalString);
+    });
+};
+
+// Add the universal header and footer to a string, and pass provided data object to the header and footer for interpolation
+const addUniversalTemplates = (str, data, callback) => {
+    str = trimStringIfValid(str);
+    if (!str) return callback('A valid string was not specified');
+
+    data = typeof (data) === 'object' && data !== null ? data : {};
+
+    getTemplate('header', data, (err, headerString) => {
+        if (err || !headerString) return callback('Could not find the header template');
+
+        getTemplate('footer', data, (err, footerString) => {
+            if (err || !footerString) return callback('Could not find the footer template');
+
+            const fullString = `${headerString}${str}${footerString}`;
+            callback(false, fullString);
+        });
     });
 };
 
 
 
-// Validation functions
+/*
+ * Validation functions
+ */
 const trimStringIfValid = (field, minLength = 0, maxLength = 0) => isValidString(field, minLength, maxLength) && field.trim();
 const isValidString = (field, minLength, maxLength) => typeof field === 'string' && field.trim().length > minLength && (maxLength > 0 ? field.trim().length <= maxLength : true);
 const isValidInteger = (field) => typeof (field) === 'number' && field % 1 === 0 && field > 0;
@@ -77,6 +126,7 @@ const isValidState = (state) => typeof (state) === 'string' && ['up', 'down'].in
 const isValidUUID = (uuid) => typeof (uuid) === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(uuid);
 
 module.exports = {
+    addUniversalTemplates,
     getTemplate,
     hash,
     parseJsonToObject,

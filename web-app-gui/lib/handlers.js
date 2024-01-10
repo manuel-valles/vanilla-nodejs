@@ -1,19 +1,37 @@
 const { randomUUID } = require('crypto');
 const { maxChecks } = require('./config');
 const _data = require('./data');
-const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds, getTemplate } = require('./helpers');
+const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds, getTemplate, addUniversalTemplates } = require('./helpers');
 
-// HTML handlers
+/*
+ * HTML handlers
+ */
 const index = (data, callback) => {
     if (data.method !== 'get') return callback(405, undefined, 'html');
 
-    getTemplate('index', (err, str) => {
+    // Prepare data for interpolation
+    const templateData = {
+        'head.title': 'Web App GUI',
+        'head.description': 'This is a web app GUI built with vanilla Node.js',
+        'body.title': 'Welcome to the Web App GUI',
+        'body.class': 'index'
+    };
+
+    getTemplate('index', templateData, (err, str) => {
         if (err || !str) return callback(500, undefined, 'html');
-        callback(200, str, 'html');
+
+        // Add the universal header and footer
+        addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
     });
 }
 
-// JSON API handlers
+/*
+ * JSON API handlers
+ */
 const _users = {};
 _users.post = (data, callback) => {
     const { firstName, lastName, phone, password, tosAgreement } = data.payload;

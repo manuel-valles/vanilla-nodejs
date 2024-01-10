@@ -1,3 +1,5 @@
+const yearCreated = new Date().getFullYear().toString();
+
 const environments = {
     staging: {
         httpPort: 3000,
@@ -9,6 +11,12 @@ const environments = {
             accountSid: '',
             authToken: '',
             fromPhone: ''
+        },
+        templateGlobals: {
+            appName: 'Web App GUI',
+            authorName: 'Manu Kem',
+            yearCreated,
+            baseUrl: 'http://localhost:3000/'
         }
     },
     production: {
@@ -21,6 +29,12 @@ const environments = {
             accountSid: '',
             authToken: '',
             fromPhone: ''
+        },
+        templateGlobals: {
+            appName: 'Web App GUI',
+            authorName: 'Manu Kem',
+            yearCreated,
+            baseUrl: 'http://localhost:4000/'
         }
     }
 };
