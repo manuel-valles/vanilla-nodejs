@@ -8,7 +8,7 @@ const path = require('path');
 const util = require('util');
 const debug = util.debuglog('server');
 const { httpPort, httpsPort, envName } = require('./config');
-const { checks, index, notFound, ping, users, tokens } = require('./handlers');
+const { checks, favicon, index, notFound, ping, public, users, tokens } = require('./handlers');
 const { parseJsonToObject } = require('./helpers');
 
 // Instantiate the HTTP server
@@ -28,6 +28,8 @@ const router = {
     'api/checks': checks,
     'api/users': users,
     'api/tokens': tokens,
+    'favicon.ico': favicon,
+    public
     // TODO: add handlers for the following routes
     // 'account/create': accountCreate,
     // 'account/edit': accountEdit,
@@ -65,8 +67,8 @@ const unifiedServer = (req, res) => {
     req.on('end', () => {
         payload += decoder.end();
 
-        // Choose the handler
-        const chosenHandler = router[trimmedPath] ?? notFound;
+        // Choose the handler (including the public assets)
+        const chosenHandler = trimmedPath.indexOf('public/') > -1 ? public : router[trimmedPath] || notFound;
 
         // Construct the data object to send to the handler
         const data = {
@@ -80,20 +82,50 @@ const unifiedServer = (req, res) => {
         // Route the request to the handler specified in the router
         chosenHandler(data, (statusCode, payload, contentType = 'json') => {
             statusCode = typeof statusCode === 'number' ? statusCode : 200;
-            let payloadString = '';
 
-            if (contentType === 'json') {
-                res.setHeader('Content-Type', 'application/json');
-                payload = typeof payload === 'object' ? payload : {};
-                payloadString = JSON.stringify(payload);
-            } else if (contentType === 'html') {
-                res.setHeader('Content-Type', 'text/html');
-                payloadString = typeof payload === 'string' ? payload : '';
+            const setResponse = (contentType) => {
+                let payloadString = '';
+
+                if (contentType === 'json') {
+                    res.setHeader('Content-Type', 'application/json');
+                    payload = typeof payload === 'object' ? payload : {};
+                    payloadString = JSON.stringify(payload);
+                } else {
+                    res.setHeader('Content-Type', contentType);
+                    payloadString = payload || '';
+                }
+
+                // Send the response
+                res.writeHead(statusCode);
+                res.end(payloadString);
+            };
+
+            switch (contentType) {
+                case 'html':
+                    setResponse('text/html');
+                    break;
+                case 'favicon':
+                    setResponse('image/x-icon');
+                    break;
+                case 'css':
+                    setResponse('text/css');
+                    break;
+                case 'png':
+                    setResponse('image/png');
+                    break;
+                case 'jpg':
+                    setResponse('image/jpeg');
+                    break;
+                case 'plain':
+                    setResponse('text/plain');
+                    break;
+                case 'js':
+                    setResponse('application/javascript');
+                    break;
+                default:
+                    setResponse('application/json');
+                    break;
             }
-
-            // Send the response
-            res.writeHead(statusCode);
-            res.end(payloadString);
 
             statusCode === 200
                 ? debug('\x1b[32m%s\x1b[0m', `${method.toUpperCase()} /${trimmedPath} ${statusCode}`)

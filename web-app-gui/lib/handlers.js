@@ -1,7 +1,7 @@
 const { randomUUID } = require('crypto');
 const { maxChecks } = require('./config');
 const _data = require('./data');
-const { hash, trimStringIfValid, isValidUUID, isValidProtocol, isValidMethod, isValidArray, isValidTimeoutSeconds, getTemplate, addUniversalTemplates } = require('./helpers');
+const _helpers = require('./helpers');
 
 /*
  * HTML handlers
@@ -17,11 +17,11 @@ const index = (data, callback) => {
         'body.class': 'index'
     };
 
-    getTemplate('index', templateData, (err, str) => {
+    _helpers.getTemplate('index', templateData, (err, str) => {
         if (err || !str) return callback(500, undefined, 'html');
 
         // Add the universal header and footer
-        addUniversalTemplates(str, templateData, (err, str) => {
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
             if (err || !str) return callback(500, undefined, 'html');
 
             callback(200, str, 'html');
@@ -35,17 +35,17 @@ const index = (data, callback) => {
 const _users = {};
 _users.post = (data, callback) => {
     const { firstName, lastName, phone, password, tosAgreement } = data.payload;
-    const _firstName = trimStringIfValid(firstName);
-    const _lastName = trimStringIfValid(lastName);
-    const _phone = trimStringIfValid(phone, 9, 10);
-    const _password = trimStringIfValid(password);
+    const _firstName = _helpers.trimStringIfValid(firstName);
+    const _lastName = _helpers.trimStringIfValid(lastName);
+    const _phone = _helpers.trimStringIfValid(phone, 9, 10);
+    const _password = _helpers.trimStringIfValid(password);
 
     if (!_firstName || !_lastName || !_phone || !_password || tosAgreement !== true) return callback(400, { error: 'Missing required fields' });
 
     _data.read('users', _phone, (err, data) => {
         if (!err) return callback(400, { error: 'A user with that phone number already exists' });
 
-        const hashedPassword = hash(_password);
+        const hashedPassword = _helpers.hash(_password);
         if (!hashedPassword) return callback(500, { error: 'Not able to hash the password' });
         const user = {
             firstName: _firstName,
@@ -61,7 +61,7 @@ _users.post = (data, callback) => {
 _users.get = (data, callback) => {
     const { phone } = data.queryStringObject;
     const { token } = data.headers;
-    const _phone = trimStringIfValid(phone, 9, 10);
+    const _phone = _helpers.trimStringIfValid(phone, 9, 10);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
@@ -80,10 +80,10 @@ _users.get = (data, callback) => {
 _users.put = (data, callback) => {
     const { firstName, lastName, phone, password } = data.payload;
     const { token } = data.headers;
-    const _firstName = trimStringIfValid(firstName);
-    const _lastName = trimStringIfValid(lastName);
-    const _phone = trimStringIfValid(phone, 9, 10);
-    const _password = trimStringIfValid(password);
+    const _firstName = _helpers.trimStringIfValid(firstName);
+    const _lastName = _helpers.trimStringIfValid(lastName);
+    const _phone = _helpers.trimStringIfValid(phone, 9, 10);
+    const _password = _helpers.trimStringIfValid(password);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
     if (!_firstName && !_lastName && !_password) return callback(400, { error: 'Missing fields to update' });
@@ -98,7 +98,7 @@ _users.put = (data, callback) => {
 
             if (_firstName) userData.firstName = _firstName;
             if (_lastName) userData.lastName = _lastName;
-            if (_password) userData.hashedPassword = hash(_password);
+            if (_password) userData.hashedPassword = _helpers.hash(_password);
 
             _data.update('users', _phone, userData, (err) => !err ? callback(200) : callback(500, { error: 'Could not update the user' }));
         });
@@ -107,7 +107,7 @@ _users.put = (data, callback) => {
 
 _users.delete = (data, callback) => {
     const { phone } = data.queryStringObject;
-    const _phone = trimStringIfValid(phone, 9, 10);
+    const _phone = _helpers.trimStringIfValid(phone, 9, 10);
 
     if (!_phone) return callback(400, { error: 'Missing phone number field' });
 
@@ -124,7 +124,7 @@ _users.delete = (data, callback) => {
             _data.remove('users', _phone, (err) => {
                 if (err) return callback(500, { error: 'Could not delete the specified user' })
 
-                const userChecks = isValidArray(data.checks) ? data.checks : [];
+                const userChecks = _helpers.isValidArray(data.checks) ? data.checks : [];
                 const checksToDelete = userChecks.length;
                 if (checksToDelete === 0) return callback(200);
 
@@ -159,15 +159,15 @@ const _tokens = {};
 
 _tokens.post = (data, callback) => {
     const { phone, password } = data.payload;
-    const _phone = trimStringIfValid(phone, 9, 10);
-    const _password = trimStringIfValid(password);
+    const _phone = _helpers.trimStringIfValid(phone, 9, 10);
+    const _password = _helpers.trimStringIfValid(password);
 
     if (!_phone || !_password) return callback(400, { error: 'Missing required fields' });
 
     _data.read('users', _phone, (err, userData) => {
         if (err || !userData) return callback(400, { error: 'Could not find the specified user' });
 
-        const hashedPassword = hash(_password);
+        const hashedPassword = _helpers.hash(_password);
         if (hashedPassword !== userData.hashedPassword) return callback(400, { error: 'Invalid credentials' });
 
         const id = randomUUID();
@@ -184,7 +184,7 @@ _tokens.post = (data, callback) => {
 
 _tokens.get = (data, callback) => {
     const { id } = data.queryStringObject;
-    if (!isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
+    if (!_helpers.isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
 
     _data.read('tokens', id, (err, data) => !err && data ? callback(200, data) : callback(404));
 }
@@ -192,7 +192,7 @@ _tokens.get = (data, callback) => {
 _tokens.put = (data, callback) => {
     const { id, extend } = data.payload;
 
-    if (!isValidUUID(id) || extend !== true) return callback(400, { error: 'Missing required fields or invalid fields' });
+    if (!_helpers.isValidUUID(id) || extend !== true) return callback(400, { error: 'Missing required fields or invalid fields' });
 
     _data.read('tokens', id, (err, tokenData) => {
         if (err || !tokenData) return callback(400, { error: 'The specified token does not exist' });
@@ -207,7 +207,7 @@ _tokens.put = (data, callback) => {
 
 _tokens.delete = (data, callback) => {
     const { id } = data.queryStringObject;
-    if (!isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
+    if (!_helpers.isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
 
     _data.read('tokens', id, (err, data) => {
         if (err || !data) return callback(400, { error: 'The specified token does not exist' });
@@ -231,11 +231,11 @@ const _checks = {};
 
 _checks.post = (data, callback) => {
     const { protocol, url, method, successCodes, timeoutSeconds } = data.payload;
-    const _protocol = isValidProtocol(protocol) && protocol;
-    const _url = trimStringIfValid(url);
-    const _method = isValidMethod(method) && method;
-    const _successCodes = isValidArray(successCodes) && successCodes;
-    const _timeoutSeconds = isValidTimeoutSeconds(timeoutSeconds) && timeoutSeconds;
+    const _protocol = _helpers.isValidProtocol(protocol) && protocol;
+    const _url = _helpers.trimStringIfValid(url);
+    const _method = _helpers.isValidMethod(method) && method;
+    const _successCodes = _helpers.isValidArray(successCodes) && successCodes;
+    const _timeoutSeconds = _helpers.isValidTimeoutSeconds(timeoutSeconds) && timeoutSeconds;
 
     if (!_protocol || !_url || !_method || !_successCodes || !_timeoutSeconds) return callback(400, { error: 'Missing required inputs or inputs are invalid' });
 
@@ -252,7 +252,7 @@ _checks.post = (data, callback) => {
         _data.read('users', phone, (err, userData) => {
             if (err || !userData) return callback(403);
 
-            const userChecks = isValidArray(userData.checks) ? userData.checks : [];
+            const userChecks = _helpers.isValidArray(userData.checks) ? userData.checks : [];
             if (userChecks.length >= maxChecks) return callback(400, { error: `The user already has the maximum number of ${maxChecks} checks` });
 
             const id = randomUUID();
@@ -280,7 +280,7 @@ _checks.post = (data, callback) => {
 
 _checks.get = (data, callback) => {
     const { id } = data.queryStringObject;
-    if (!isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
+    if (!_helpers.isValidUUID(id)) return callback(400, { error: 'Missing ID field' });
 
     const { token } = data.headers;
     const _token = typeof (token) === 'string' && token;
@@ -297,12 +297,12 @@ _checks.get = (data, callback) => {
 
 _checks.put = (data, callback) => {
     const { id, protocol, url, method, successCodes, timeoutSeconds } = data.payload;
-    const _id = isValidUUID(id) && id;
-    const _protocol = isValidProtocol(protocol) && protocol;
-    const _url = trimStringIfValid(url);
-    const _method = isValidMethod(method) && method;
-    const _successCodes = isValidArray(successCodes) && successCodes;
-    const _timeoutSeconds = isValidTimeoutSeconds(timeoutSeconds) && timeoutSeconds;
+    const _id = _helpers.isValidUUID(id) && id;
+    const _protocol = _helpers.isValidProtocol(protocol) && protocol;
+    const _url = _helpers.trimStringIfValid(url);
+    const _method = _helpers.isValidMethod(method) && method;
+    const _successCodes = _helpers.isValidArray(successCodes) && successCodes;
+    const _timeoutSeconds = _helpers.isValidTimeoutSeconds(timeoutSeconds) && timeoutSeconds;
 
 
     if (!_id) return callback(400, { error: 'Missing required ID field' });
@@ -331,7 +331,7 @@ _checks.put = (data, callback) => {
 
 _checks.delete = (data, callback) => {
     const { id } = data.queryStringObject;
-    if (!isValidUUID(id)) return callback(400, { error: 'Missing or invalid ID field' });
+    if (!_helpers.isValidUUID(id)) return callback(400, { error: 'Missing or invalid ID field' });
 
     const { token } = data.headers;
     const _token = typeof (token) === 'string' && token;
@@ -349,7 +349,7 @@ _checks.delete = (data, callback) => {
                 _data.read('users', checkData.phone, (err, userData) => {
                     if (err || !userData) return callback(500, { error: 'Could not find the user who created the check' });
 
-                    const userChecks = isValidArray(userData.checks) ? userData.checks : [];
+                    const userChecks = _helpers.isValidArray(userData.checks) ? userData.checks : [];
                     const checkPosition = userChecks.indexOf(id);
                     if (checkPosition === -1) return callback(500, { error: 'Could not find the check on the users object' });
 
@@ -370,8 +370,49 @@ const checks = (data, callback) => {
     }
 }
 
+const favicon = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    _helpers.getStaticAsset('favicon.ico', (err, data) => {
+        if (err || !data) return callback(500);
+
+        callback(200, data, 'favicon');
+    });
+}
+
+const public = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    // Get requested file name
+    var trimmedAssetName = data.trimmedPath.replace('public/', '').trim();
+
+    if (trimmedAssetName.length === 0) return callback(404);
+
+    // Read in the asset's data
+    _helpers.getStaticAsset(trimmedAssetName, (err, data) => {
+        if (err || !data) return callback(404);
+        // Determine the content type (default to plain text)
+        var contentType = 'plain';
+        switch (trimmedAssetName.split('.').pop()) {
+            case 'css':
+                contentType = 'css';
+                break;
+            case 'png':
+                contentType = 'png';
+                break;
+            case 'jpg':
+                contentType = 'jpg';
+                break;
+            case 'ico':
+                contentType = 'favicon';
+                break;
+        }
+
+        callback(200, data, contentType);
+    });
+}
 
 const ping = (data, callback) => callback(200);
 const notFound = (data, callback) => callback(404);
 
-module.exports = { checks, index, notFound, ping, users, tokens };
+module.exports = { checks, favicon, index, notFound, ping, public, users, tokens };

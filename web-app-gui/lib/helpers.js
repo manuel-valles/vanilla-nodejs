@@ -110,7 +110,17 @@ const addUniversalTemplates = (str, data, callback) => {
     });
 };
 
+// Get the contents of a static (public) asset
+const getStaticAsset = (fileName, callback) => {
+    fileName = trimStringIfValid(fileName);
+    if (!fileName) return callback('A valid file name was not specified');
 
+    fs.readFile(path.join(__dirname, '../public/', fileName), (err, data) => {
+        if (err || !data) return callback('No file could be found');
+
+        callback(false, data);
+    });
+};
 
 /*
  * Validation functions
@@ -128,6 +138,7 @@ const isValidUUID = (uuid) => typeof (uuid) === 'string' && /^[0-9a-fA-F]{8}-[0-
 module.exports = {
     addUniversalTemplates,
     getTemplate,
+    getStaticAsset,
     hash,
     parseJsonToObject,
     trimStringIfValid,
