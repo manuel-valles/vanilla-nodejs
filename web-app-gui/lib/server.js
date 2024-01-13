@@ -86,16 +86,15 @@ const unifiedServer = (req, res) => {
             const setResponse = (contentType) => {
                 let payloadString = '';
 
-                if (contentType === 'json') {
-                    res.setHeader('Content-Type', 'application/json');
+                if (contentType.includes('json')) {
                     payload = typeof payload === 'object' ? payload : {};
                     payloadString = JSON.stringify(payload);
                 } else {
-                    res.setHeader('Content-Type', contentType);
                     payloadString = payload || '';
                 }
 
                 // Send the response
+                res.setHeader('Content-Type', contentType);
                 res.writeHead(statusCode);
                 res.end(payloadString);
             };
