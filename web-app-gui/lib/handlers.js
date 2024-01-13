@@ -11,9 +11,8 @@ const index = (data, callback) => {
 
     // Prepare data for interpolation
     const templateData = {
-        'head.title': 'Web App GUI',
-        'head.description': 'This is a web app GUI built with vanilla Node.js',
-        'body.title': 'Welcome to the Web App GUI',
+        'head.title': 'Uptime Monitoring',
+        'head.description': 'This is a simple uptime monitoring application made with Node.js',
         'body.class': 'index'
     };
 
