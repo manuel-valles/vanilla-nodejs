@@ -51,6 +51,27 @@ app.client.request = (headers, path, method, queryStringObject, payload, callbac
     xhr.send(payloadString);
 };
 
+app.bindLogoutButton = () => {
+    document.getElementById('logoutButton').addEventListener('click', (event) => {
+        // Stop it from redirecting
+        event.preventDefault();
+        // Log the user out
+        app.logUserOut();
+    });
+};
+
+app.logUserOut = () => {
+    // Get the current token ID
+    const tokenId = typeof (app.config.sessionToken.id) === 'string' && app.config.sessionToken.id;
+    if (!tokenId) return;
+
+    // Delete the token and redirect the user 
+    app.client.request(undefined, 'api/tokens', 'DELETE', { id: tokenId }, undefined, () => {
+        app.setSessionToken(false);
+        window.location = '/session/deleted';
+    });
+};
+
 // Bind the forms
 app.bindForms = () => {
     const form = document.querySelector('form');
@@ -118,7 +139,7 @@ app.getSessionToken = () => {
     try {
         const token = JSON.parse(tokenString);
         app.config.sessionToken = token;
-        app.setLoggedInClass(true);
+        app.setLoggedInClass(typeof token === 'object')
     } catch (e) {
         app.config.sessionToken = false;
         app.setLoggedInClass(false);
@@ -133,7 +154,7 @@ app.setLoggedInClass = (add) => {
 app.setSessionToken = (token) => {
     app.config.sessionToken = token;
     localStorage.setItem('token', JSON.stringify(token));
-    typeof (token) == 'object' ? app.setLoggedInClass(true) : app.setLoggedInClass(false);
+    app.setLoggedInClass(typeof (token) == 'object')
 }
 
 app.renewToken = (callback) => {
@@ -157,7 +178,7 @@ app.renewToken = (callback) => {
                 app.setSessionToken(false);
                 return callback(true);
             }
-            app.setSessionToken(false);
+            app.setSessionToken(responsePayload);
             callback(true);
         });
     });
@@ -168,11 +189,14 @@ app.init = () => {
     // Bind all form submissions
     app.bindForms();
 
+    // Bind logout logout button
+    app.bindLogoutButton();
+
     // Get the token from local storage
     app.getSessionToken();
 
     // Renew token every minute
-    setInterval(() => app.renewToken((err) => !err && console.log(`Token renewed successfully @${Date.now()}`), 60 * 1000));
+    setInterval(() => app.renewToken((err) => !err && console.log(`Token renewed successfully @${Date.now()}`)), 1000 * 60);
 }
 
 // Initialize the app every time the page loads

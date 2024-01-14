@@ -453,9 +453,30 @@ const sessionCreate = (data, callback) => {
             callback(200, str, 'html');
         });
     });
-}
+};
 
-const ping = (data, callback) => callback(200);
-const notFound = (data, callback) => callback(404);
+const sessionDeleted = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
 
-module.exports = { accountCreate, checks, favicon, index, notFound, ping, public, sessionCreate, users, tokens };
+    const templateData = {
+        'head.title': 'Logged Out',
+        'head.description': 'You have been logged out of your account.',
+        'body.class': 'sessionDeleted'
+    };
+
+    _helpers.getTemplate('sessionDeleted', templateData, (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+
+        // Add the universal header and footer
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
+    });
+};
+
+const ping = (_, callback) => callback(200);
+const notFound = (_, callback) => callback(404);
+
+module.exports = { accountCreate, checks, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens };
