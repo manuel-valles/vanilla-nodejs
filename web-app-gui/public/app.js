@@ -50,3 +50,48 @@ app.client.request = (headers, path, method, queryStringObject, payload, callbac
     const payloadString = JSON.stringify(payload);
     xhr.send(payloadString);
 };
+
+// Bind the forms
+app.bindForms = () => {
+    document.querySelector('form').addEventListener('submit', (event) => {
+        // Stop it from submitting
+        event.preventDefault();
+
+        const { id: formId, action: path, method, elements } = event.target;
+        const errorSelector = `#${formId} .formError`;
+
+        // Hide the error message if a previous error exists
+        document.querySelector(errorSelector).style.display = 'none';
+
+        // Turn the inputs into a payload
+        const payload = {};
+        Array.from(elements).forEach(({ type, checked, value, name }) => {
+            if (type !== 'submit') {
+                payload[name] = type === 'checkbox' ? checked : value;
+            }
+        })
+
+        // Call the API Client
+        app.client.request(undefined, path, method.toUpperCase(), undefined, payload, (statusCode, responsePayload) => {
+            if (statusCode === 200) return app.formResponseProcessor(formId, payload, responsePayload);
+
+            // Set the formError field with the error text and show it
+            document.querySelector(errorSelector).innerHTML = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has occurred, please try again';;
+            document.querySelector(errorSelector).style.display = 'block';
+        });
+    });
+};
+
+app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
+    const functionToCall = false;
+    if (formId === 'accountCreate') {
+        // TODO: Do something
+        console.log('accountCreate');
+    }
+};
+
+// Bootstrap the app
+app.init = () => app.bindForms();
+
+// Initialize the app every time the page loads
+window.onload = () => app.init();

@@ -411,7 +411,29 @@ const public = (data, callback) => {
     });
 }
 
+const accountCreate = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    // Prepare data for interpolation
+    const templateData = {
+        'head.title': 'Create an Account',
+        'head.description': 'You can create an account here to start monitoring your URLs and receive alerts when they go down.',
+        'body.class': 'accountCreate'
+    };
+
+    _helpers.getTemplate('accountCreate', templateData, (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+
+        // Add the universal header and footer
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
+    });
+}
+
 const ping = (data, callback) => callback(200);
 const notFound = (data, callback) => callback(404);
 
-module.exports = { checks, favicon, index, notFound, ping, public, users, tokens };
+module.exports = { accountCreate, checks, favicon, index, notFound, ping, public, users, tokens };
