@@ -74,6 +74,7 @@ app.logUserOut = () => {
 
 // Bind the forms
 app.bindForms = () => {
+    // TODO: Fix this to handle multiple forms
     const form = document.querySelector('form');
     if (!form) return;
 
@@ -81,23 +82,30 @@ app.bindForms = () => {
         // Stop it from submitting
         event.preventDefault();
 
-        const { id: formId, action: path, method, elements } = event.target;
+        const { id: formId, action: path, elements } = event.target;
+        let method = event.target.method.toUpperCase();
         const errorSelector = `#${formId} .formError`;
+        const successSelector = `#${formId} .formSuccess`;
 
-        // Hide the error message if a previous error exists
-        document.querySelector(errorSelector).style.display = 'none';
+        // Hide the error messages if they are currently shown
+        if (document.querySelector(errorSelector)) document.querySelector(errorSelector).style.display = 'none';
+        if (document.querySelector(successSelector)) document.querySelector(successSelector).style.display = 'none';
 
         // Turn the inputs into a payload
         const payload = {};
         Array.from(elements).forEach(({ type, checked, value, name }) => {
             if (type !== 'submit') {
-                payload[name] = type === 'checkbox' ? checked : value;
+                const valueOfElement = type === 'checkbox' ? checked : value;
+                // When using HTML forms, browsers typically only support GET and POST requests
+                // Override the method of the form if the input's name is _method (for PUT and DELETE requests)
+                name == '_method' ? method = valueOfElement : payload[name] = valueOfElement;
             }
         })
 
         // Call the API Client
-        app.client.request(undefined, path, method.toUpperCase(), undefined, payload, (statusCode, responsePayload) => {
+        app.client.request(undefined, path, method, undefined, payload, (statusCode, responsePayload) => {
             if (statusCode === 200) return app.formResponseProcessor(formId, payload, responsePayload);
+            if (statusCode === 403) return app.logUserOut();
 
             // Set the formError field with the error text and show it
             document.querySelector(errorSelector).innerHTML = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has occurred, please try again';;
@@ -129,6 +137,13 @@ app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
     if (formId == 'sessionCreate') {
         app.setSessionToken(responsePayload);
         window.location = '/checks/all';
+    }
+
+    // If forms saved successfully and they have success messages, show them
+    const formsWithSuccessMessages = ['accountEdit1', 'accountEdit2'];
+    const successSelector = `#${formId} .formSuccess`;
+    if (formsWithSuccessMessages.indexOf(formId) > -1) {
+        document.querySelector(successSelector).style.display = 'block';
     }
 };
 
@@ -184,6 +199,36 @@ app.renewToken = (callback) => {
     });
 };
 
+app.loadDataOnPage = () => {
+    // Get the current page from the body class
+    const bodyClasses = document.querySelector('body').classList;
+    const primaryClass = typeof (bodyClasses[0]) == 'string' && bodyClasses[0];
+
+    if (primaryClass == 'accountEdit') app.loadAccountEditPage();
+};
+
+app.loadAccountEditPage = () => {
+    // Get the phone number from the current token, or log the user out if none is there
+    const phone = typeof (app.config.sessionToken.phone) === 'string' && app.config.sessionToken.phone;
+
+    if (!phone) return app.logUserOut();
+
+    const queryStringObject = { phone };
+
+    app.client.request(undefined, 'api/users', 'GET', queryStringObject, undefined, (statusCode, responsePayload) => {
+        if (statusCode !== 200) return app.logUserOut();
+
+        // Put the data into the forms as values where needed
+        const { firstName, lastName, phone } = responsePayload;
+        document.querySelector('#accountEdit1 .firstNameInput').value = firstName;
+        document.querySelector('#accountEdit1 .lastNameInput').value = lastName;
+        document.querySelector('#accountEdit1 .displayPhoneInput').value = phone;
+
+        // Put the hidden phone field into both forms
+        document.querySelectorAll('input.hiddenPhoneNumberInput').forEach((input) => input.value = phone);
+    });
+};
+
 // Bootstrap the app
 app.init = () => {
     // Bind all form submissions
@@ -197,6 +242,9 @@ app.init = () => {
 
     // Renew token every minute
     setInterval(() => app.renewToken((err) => !err && console.log(`Token renewed successfully @${Date.now()}`)), 1000 * 60);
+
+    // Load data on page
+    app.loadDataOnPage();
 }
 
 // Initialize the app every time the page loads
