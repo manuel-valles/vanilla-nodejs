@@ -433,7 +433,29 @@ const accountCreate = (data, callback) => {
     });
 }
 
+const sessionCreate = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    // Prepare data for interpolation
+    const templateData = {
+        'head.title': 'Login to your Account',
+        'head.description': 'Please enter your phone number and password to access your account.',
+        'body.class': 'sessionCreate'
+    };
+
+    _helpers.getTemplate('sessionCreate', templateData, (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+
+        // Add the universal header and footer
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
+    });
+}
+
 const ping = (data, callback) => callback(200);
 const notFound = (data, callback) => callback(404);
 
-module.exports = { accountCreate, checks, favicon, index, notFound, ping, public, users, tokens };
+module.exports = { accountCreate, checks, favicon, index, notFound, ping, public, sessionCreate, users, tokens };

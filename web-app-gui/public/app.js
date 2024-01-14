@@ -53,7 +53,10 @@ app.client.request = (headers, path, method, queryStringObject, payload, callbac
 
 // Bind the forms
 app.bindForms = () => {
-    document.querySelector('form').addEventListener('submit', (event) => {
+    const form = document.querySelector('form');
+    if (!form) return;
+
+    form.addEventListener('submit', (event) => {
         // Stop it from submitting
         event.preventDefault();
 
@@ -84,14 +87,93 @@ app.bindForms = () => {
 
 app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
     const functionToCall = false;
-    if (formId === 'accountCreate') {
-        // TODO: Do something
-        console.log('accountCreate');
+    const { phone, password } = requestPayload;
+    if (formId == 'accountCreate') {
+        // Log the user in
+        app.client.request(undefined, 'api/tokens', 'POST', undefined, { phone, password }, (newStatusCode, newResponsePayload) => {
+            if (newStatusCode !== 200) {
+                const errorSelector = `#${formId} .formError`;
+                // Set the formError field with the error text and show it
+                document.querySelector(errorSelector).innerHTML = 'Sorry, an error has occurred. Please try again';
+                document.querySelector(errorSelector).style.display = 'block';
+
+            } else {
+                // If successful, set the token and redirect the user
+                app.setSessionToken(newResponsePayload);
+                window.location = '/checks/all';
+            }
+        });
+    }
+    // If login was successful, set the token in local storage and redirect the user
+    if (formId == 'sessionCreate') {
+        app.setSessionToken(responsePayload);
+        window.location = '/checks/all';
     }
 };
 
+app.getSessionToken = () => {
+    const tokenString = localStorage.getItem('token');
+    if (typeof (tokenString) !== 'string') return false;
+
+    try {
+        const token = JSON.parse(tokenString);
+        app.config.sessionToken = token;
+        app.setLoggedInClass(true);
+    } catch (e) {
+        app.config.sessionToken = false;
+        app.setLoggedInClass(false);
+    }
+}
+
+app.setLoggedInClass = (add) => {
+    const target = document.querySelector('body');
+    add ? target.classList.add('loggedIn') : target.classList.remove('loggedIn');
+}
+
+app.setSessionToken = (token) => {
+    app.config.sessionToken = token;
+    localStorage.setItem('token', JSON.stringify(token));
+    typeof (token) == 'object' ? app.setLoggedInClass(true) : app.setLoggedInClass(false);
+}
+
+app.renewToken = (callback) => {
+    const currentToken = typeof (app.config.sessionToken) == 'object' && app.config.sessionToken;
+    if (!currentToken) {
+        app.setSessionToken(false);
+        return callback(true);
+    }
+    const { id } = currentToken;
+
+    // Update the token with a new expiration
+    const payload = { id, extend: true };
+    app.client.request(undefined, 'api/tokens', 'PUT', undefined, payload, (statusCode, responsePayload) => {
+        if (statusCode !== 200) {
+            app.setSessionToken(false);
+            return callback(true);
+        }
+        // Get the new token details
+        app.client.request(undefined, 'api/tokens', 'GET', { id }, undefined, (statusCode, responsePayload) => {
+            if (statusCode !== 200) {
+                app.setSessionToken(false);
+                return callback(true);
+            }
+            app.setSessionToken(false);
+            callback(true);
+        });
+    });
+};
+
 // Bootstrap the app
-app.init = () => app.bindForms();
+app.init = () => {
+    // Bind all form submissions
+    app.bindForms();
+
+    // Get the token from local storage
+    app.getSessionToken();
+
+    // Renew token every minute
+    setInterval(() => app.renewToken((err) => !err && console.log(`Token renewed successfully @${Date.now()}`), 60 * 1000));
+}
 
 // Initialize the app every time the page loads
 window.onload = () => app.init();
