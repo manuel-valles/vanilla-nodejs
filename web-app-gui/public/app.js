@@ -97,12 +97,15 @@ app.bindForms = () => {
                 const valueOfElement = type === 'checkbox' ? checked : value;
                 // When using HTML forms, browsers typically only support GET and POST requests
                 // Override the method of the form if the input's name is _method (for PUT and DELETE requests)
-                name == '_method' ? method = valueOfElement : payload[name] = valueOfElement;
+                name === '_method' ? method = valueOfElement : payload[name] = valueOfElement;
             }
         })
 
+        // Use queryStringObject if method is DELETE
+        const queryStringObject = method === 'DELETE' ? payload : {};
+
         // Call the API Client
-        app.client.request(undefined, path, method, undefined, payload, (statusCode, responsePayload) => {
+        app.client.request(undefined, path, method, queryStringObject, payload, (statusCode, responsePayload) => {
             if (statusCode === 200) return app.formResponseProcessor(formId, payload, responsePayload);
             if (statusCode === 403) return app.logUserOut();
 
@@ -116,7 +119,7 @@ app.bindForms = () => {
 app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
     const functionToCall = false;
     const { phone, password } = requestPayload;
-    if (formId == 'accountCreate') {
+    if (formId === 'accountCreate') {
         // Log the user in
         app.client.request(undefined, 'api/tokens', 'POST', undefined, { phone, password }, (newStatusCode, newResponsePayload) => {
             if (newStatusCode !== 200) {
@@ -133,7 +136,7 @@ app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
         });
     }
     // If login was successful, set the token in local storage and redirect the user
-    if (formId == 'sessionCreate') {
+    if (formId === 'sessionCreate') {
         app.setSessionToken(responsePayload);
         window.location = '/checks/all';
     }
@@ -143,6 +146,12 @@ app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
     const successSelector = `#${formId} .formSuccess`;
     if (formsWithSuccessMessages.indexOf(formId) > -1) {
         document.querySelector(successSelector).style.display = 'block';
+    }
+
+    // Redirect to account deleted page after successful account deletion
+    if (formId === 'accountEdit3') {
+        app.logUserOut(false);
+        window.location = '/account/deleted';
     }
 };
 
@@ -168,11 +177,11 @@ app.setLoggedInClass = (add) => {
 app.setSessionToken = (token) => {
     app.config.sessionToken = token;
     localStorage.setItem('token', JSON.stringify(token));
-    app.setLoggedInClass(typeof (token) == 'object')
+    app.setLoggedInClass(typeof (token) === 'object')
 }
 
 app.renewToken = (callback) => {
-    const currentToken = typeof (app.config.sessionToken) == 'object' && app.config.sessionToken;
+    const currentToken = typeof (app.config.sessionToken) === 'object' && app.config.sessionToken;
     if (!currentToken) {
         app.setSessionToken(false);
         return callback(true);
@@ -201,9 +210,9 @@ app.renewToken = (callback) => {
 app.loadDataOnPage = () => {
     // Get the current page from the body class
     const bodyClasses = document.querySelector('body').classList;
-    const primaryClass = typeof (bodyClasses[0]) == 'string' && bodyClasses[0];
+    const primaryClass = typeof (bodyClasses[0]) === 'string' && bodyClasses[0];
 
-    if (primaryClass == 'accountEdit') app.loadAccountEditPage();
+    if (primaryClass === 'accountEdit') app.loadAccountEditPage();
 };
 
 app.loadAccountEditPage = () => {

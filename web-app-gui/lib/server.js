@@ -8,7 +8,7 @@ const path = require('path');
 const util = require('util');
 const debug = util.debuglog('server');
 const { httpPort, httpsPort, envName } = require('./config');
-const { accountCreate, accountEdit, checks, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens } = require('./handlers');
+const { accountCreate, accountDeleted, accountEdit, checks, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens } = require('./handlers');
 const { parseJsonToObject } = require('./helpers');
 
 // Instantiate the HTTP server
@@ -26,6 +26,7 @@ const router = {
     ping,
     '': index,
     'account/create': accountCreate,
+    'account/deleted': accountDeleted,
     'account/edit': accountEdit,
     'api/checks': checks,
     'api/users': users,
@@ -35,7 +36,6 @@ const router = {
     'session/create': sessionCreate,
     'session/deleted': sessionDeleted,
     // TODO: add handlers for the following routes
-    // 'account/deleted': accountDeleted,
     // 'checks/all': checksList,
     // 'checks/create': checksCreate,
     // 'checks/edit': checksEdit,

@@ -495,9 +495,30 @@ const accountEdit = (data, callback) => {
             callback(200, str, 'html');
         });
     });
-}
+};
+
+const accountDeleted = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    const templateData = {
+        'head.title': 'Account Deleted',
+        'head.description': 'Your account has been deleted.',
+        'body.class': 'accountDeleted'
+    };
+
+    _helpers.getTemplate('accountDeleted', templateData, (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+
+        // Add the universal header and footer
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
+    });
+};
 
 const ping = (_, callback) => callback(200);
 const notFound = (_, callback) => callback(404);
 
-module.exports = { accountCreate, accountEdit, checks, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens };
+module.exports = { accountCreate, accountDeleted, accountEdit, checks, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens };
