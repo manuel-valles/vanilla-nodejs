@@ -518,7 +518,28 @@ const accountDeleted = (data, callback) => {
     });
 };
 
+const checksCreate = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    // No description needed since it is a private page
+    const templateData = {
+        'head.title': 'Create a New Check',
+        'body.class': 'checksCreate'
+    };
+
+    _helpers.getTemplate('checksCreate', templateData, (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+
+        // Add the universal header and footer
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
+    });
+}
+
 const ping = (_, callback) => callback(200);
 const notFound = (_, callback) => callback(404);
 
-module.exports = { accountCreate, accountDeleted, accountEdit, checks, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens };
+module.exports = { accountCreate, accountDeleted, accountEdit, checks, checksCreate, favicon, index, notFound, ping, public, sessionCreate, sessionDeleted, users, tokens };

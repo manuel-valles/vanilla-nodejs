@@ -92,14 +92,33 @@ app.bindForms = () => {
 
         // Turn the inputs into a payload
         const payload = {};
-        Array.from(elements).forEach(({ type, checked, value, name }) => {
+        Array.from(elements).forEach(({ type, checked, classList, value, name }) => {
             if (type !== 'submit') {
-                const valueOfElement = type === 'checkbox' ? checked : value;
+                // Determine class of element and set value accordingly
+                const classOfElement = typeof (classList.value) == 'string' && classList.value.length > 0 ? classList.value : '';
+                const valueOfElement = type == 'checkbox' && classOfElement.indexOf('multiselect') === -1 ? checked : classOfElement.indexOf('intval') == -1 ? value : parseInt(value);
                 // When using HTML forms, browsers typically only support GET and POST requests
                 // Override the method of the form if the input's name is _method (for PUT and DELETE requests)
-                name === '_method' ? method = valueOfElement : payload[name] = valueOfElement;
+                if (name === '_method') {
+                    method = valueOfElement
+                } else {
+                    // Create an payload field named "method" if the elements name is actually "httpMethod"
+                    if (name === 'httpMethod') {
+                        name = 'method';
+                    }
+                    // If the element has the class "multiselect", add its value(s) as array elements
+                    if (classOfElement.indexOf('multiselect') > -1) {
+                        if (checked) {
+                            payload[name] = typeof (payload[name]) == 'object' && payload[name] instanceof Array ? payload[name] : [];
+                            payload[name].push(valueOfElement);
+                        }
+                    } else {
+                        payload[name] = valueOfElement;
+                    }
+
+                }
             }
-        })
+        });
 
         // Use queryStringObject if method is DELETE
         const queryStringObject = method === 'DELETE' ? payload : {};
@@ -152,6 +171,11 @@ app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
     if (formId === 'accountEdit3') {
         app.logUserOut(false);
         window.location = '/account/deleted';
+    }
+
+    // Redirect to all checks page after successful check creation
+    if (formId === 'checksCreate') {
+        window.location = '/checks/all';
     }
 };
 
