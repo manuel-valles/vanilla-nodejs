@@ -74,7 +74,7 @@ app.logUserOut = () => {
 
 // Bind the forms
 app.bindForms = () => {
-    const allForms = document.querySelectorAll("form");
+    const allForms = document.querySelectorAll('form');
     if (!allForms.length) return;
 
     allForms.forEach((form) => form.addEventListener('submit', (event) => {
@@ -102,11 +102,11 @@ app.bindForms = () => {
                 if (name === '_method') {
                     method = valueOfElement
                 } else {
-                    // Create an payload field named "method" if the elements name is actually "httpMethod"
+                    // Create an payload field named 'method' if the elements name is actually 'httpMethod'
                     if (name === 'httpMethod') {
                         name = 'method';
                     }
-                    // If the element has the class "multiselect", add its value(s) as array elements
+                    // If the element has the class 'multiselect', add its value(s) as array elements
                     if (classOfElement.indexOf('multiselect') > -1) {
                         if (checked) {
                             payload[name] = typeof (payload[name]) == 'object' && payload[name] instanceof Array ? payload[name] : [];
@@ -237,6 +237,7 @@ app.loadDataOnPage = () => {
     const primaryClass = typeof (bodyClasses[0]) === 'string' && bodyClasses[0];
 
     if (primaryClass === 'accountEdit') app.loadAccountEditPage();
+    if (primaryClass === 'checksList') app.loadChecksListPage();
 };
 
 app.loadAccountEditPage = () => {
@@ -245,9 +246,7 @@ app.loadAccountEditPage = () => {
 
     if (!phone) return app.logUserOut();
 
-    const queryStringObject = { phone };
-
-    app.client.request(undefined, 'api/users', 'GET', queryStringObject, undefined, (statusCode, responsePayload) => {
+    app.client.request(undefined, 'api/users', 'GET', { phone }, undefined, (statusCode, responsePayload) => {
         if (statusCode !== 200) return app.logUserOut();
 
         // Put the data into the forms as values where needed
@@ -258,6 +257,57 @@ app.loadAccountEditPage = () => {
 
         // Put the hidden phone field into both forms
         document.querySelectorAll('input.hiddenPhoneNumberInput').forEach((input) => input.value = phone);
+    });
+};
+
+app.loadChecksListPage = () => {
+    // Get the phone number from the current token, or log the user out if none is there
+    const phone = typeof (app.config.sessionToken.phone) === 'string' && app.config.sessionToken.phone;
+
+    if (!phone) return app.logUserOut();
+
+    app.client.request(undefined, 'api/users', 'GET', { phone }, undefined, (statusCode, responsePayload) => {
+        if (statusCode !== 200) return app.logUserOut();
+
+        // Determine how many checks the user has
+        const allChecks = typeof (responsePayload.checks) == 'object' && responsePayload.checks instanceof Array && responsePayload.checks.length > 0 ? responsePayload.checks : [];
+
+        if (!allChecks.length) {
+            // Show 'you have no checks' message
+            document.getElementById('noChecksMessage').style.display = 'table-row';
+            // Show the createCheck CTA
+            document.getElementById('createCheckCTA').style.display = 'block';
+            return;
+        }
+
+
+        // Show each created check as a new row in the table
+        allChecks.forEach((checkId) => {
+            app.client.request(undefined, 'api/checks', 'GET', { id: checkId }, undefined, (statusCode, { id, method, protocol, url, state }) => {
+                if (statusCode !== 200) return console.log(`Error trying to load check ID: ${checkId}`);
+                // Make the check data into a table row
+                var table = document.getElementById('checksListTable');
+                var tr = table.insertRow(-1);
+                tr.classList.add('checkRow');
+                var td0 = tr.insertCell(0);
+                var td1 = tr.insertCell(1);
+                var td2 = tr.insertCell(2);
+                var td3 = tr.insertCell(3);
+                var td4 = tr.insertCell(4);
+                td0.innerHTML = method.toUpperCase();
+                td1.innerHTML = `${protocol}://`;
+                td2.innerHTML = url;
+                var state = typeof state === 'string' ? state : 'unknown';
+                td3.innerHTML = state;
+                td4.innerHTML = `<a href="/checks/edit?id=${id}">View / Edit / Delete</a>`;
+
+            });
+        });
+
+        if (allChecks.length < 5) {
+            // Show the createCheck CTA
+            document.getElementById('createCheckCTA').style.display = 'block';
+        }
     });
 };
 
