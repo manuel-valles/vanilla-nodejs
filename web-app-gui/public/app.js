@@ -95,8 +95,8 @@ app.bindForms = () => {
         Array.from(elements).forEach(({ type, checked, classList, value, name }) => {
             if (type !== 'submit') {
                 // Determine class of element and set value accordingly
-                const classOfElement = typeof (classList.value) == 'string' && classList.value.length > 0 ? classList.value : '';
-                const valueOfElement = type == 'checkbox' && classOfElement.indexOf('multiselect') === -1 ? checked : classOfElement.indexOf('intval') == -1 ? value : parseInt(value);
+                const classOfElement = typeof classList.value === 'string' && classList.value.length > 0 ? classList.value : '';
+                const valueOfElement = type === 'checkbox' && classOfElement.indexOf('multiselect') === -1 ? checked : classOfElement.indexOf('intval') === -1 ? value : parseInt(value);
                 // When using HTML forms, browsers typically only support GET and POST requests
                 // Override the method of the form if the input's name is _method (for PUT and DELETE requests)
                 if (name === '_method') {
@@ -106,10 +106,14 @@ app.bindForms = () => {
                     if (name === 'httpMethod') {
                         name = 'method';
                     }
+                    // Create an payload field named 'id' if the elements name is actually 'uid'
+                    if (name === 'uid') {
+                        name = 'id';
+                    }
                     // If the element has the class 'multiselect', add its value(s) as array elements
                     if (classOfElement.indexOf('multiselect') > -1) {
                         if (checked) {
-                            payload[name] = typeof (payload[name]) == 'object' && payload[name] instanceof Array ? payload[name] : [];
+                            payload[name] = typeof (payload[name]) === 'object' && payload[name] instanceof Array ? payload[name] : [];
                             payload[name].push(valueOfElement);
                         }
                     } else {
@@ -129,7 +133,8 @@ app.bindForms = () => {
             if (statusCode === 403) return app.logUserOut();
 
             // Set the formError field with the error text and show it
-            document.querySelector(errorSelector).innerHTML = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has occurred, please try again';;
+            const { Error } = responsePayload;
+            document.querySelector(errorSelector).innerHTML = typeof Error === 'string' ? Error : 'An error has occurred, please try again';;
             document.querySelector(errorSelector).style.display = 'block';
         });
     }));
@@ -214,7 +219,7 @@ app.renewToken = (callback) => {
 
     // Update the token with a new expiration
     const payload = { id, extend: true };
-    app.client.request(undefined, 'api/tokens', 'PUT', undefined, payload, (statusCode, responsePayload) => {
+    app.client.request(undefined, 'api/tokens', 'PUT', undefined, payload, (statusCode, _) => {
         if (statusCode !== 200) {
             app.setSessionToken(false);
             return callback(true);
@@ -238,6 +243,7 @@ app.loadDataOnPage = () => {
 
     if (primaryClass === 'accountEdit') app.loadAccountEditPage();
     if (primaryClass === 'checksList') app.loadChecksListPage();
+    if (primaryClass === 'checksEdit') app.loadChecksEditPage();
 };
 
 app.loadAccountEditPage = () => {
@@ -246,11 +252,10 @@ app.loadAccountEditPage = () => {
 
     if (!phone) return app.logUserOut();
 
-    app.client.request(undefined, 'api/users', 'GET', { phone }, undefined, (statusCode, responsePayload) => {
+    app.client.request(undefined, 'api/users', 'GET', { phone }, undefined, (statusCode, { firstName, lastName, phone }) => {
         if (statusCode !== 200) return app.logUserOut();
 
         // Put the data into the forms as values where needed
-        const { firstName, lastName, phone } = responsePayload;
         document.querySelector('#accountEdit1 .firstNameInput').value = firstName;
         document.querySelector('#accountEdit1 .lastNameInput').value = lastName;
         document.querySelector('#accountEdit1 .displayPhoneInput').value = phone;
@@ -266,11 +271,11 @@ app.loadChecksListPage = () => {
 
     if (!phone) return app.logUserOut();
 
-    app.client.request(undefined, 'api/users', 'GET', { phone }, undefined, (statusCode, responsePayload) => {
+    app.client.request(undefined, 'api/users', 'GET', { phone }, undefined, (statusCode, { checks }) => {
         if (statusCode !== 200) return app.logUserOut();
 
         // Determine how many checks the user has
-        const allChecks = typeof (responsePayload.checks) == 'object' && responsePayload.checks instanceof Array && responsePayload.checks.length > 0 ? responsePayload.checks : [];
+        const allChecks = typeof checks === 'object' && checks instanceof Array && checks.length > 0 ? checks : [];
 
         if (!allChecks.length) {
             // Show 'you have no checks' message
@@ -286,19 +291,18 @@ app.loadChecksListPage = () => {
             app.client.request(undefined, 'api/checks', 'GET', { id: checkId }, undefined, (statusCode, { id, method, protocol, url, state }) => {
                 if (statusCode !== 200) return console.log(`Error trying to load check ID: ${checkId}`);
                 // Make the check data into a table row
-                var table = document.getElementById('checksListTable');
-                var tr = table.insertRow(-1);
+                const table = document.getElementById('checksListTable');
+                const tr = table.insertRow(-1);
                 tr.classList.add('checkRow');
-                var td0 = tr.insertCell(0);
-                var td1 = tr.insertCell(1);
-                var td2 = tr.insertCell(2);
-                var td3 = tr.insertCell(3);
-                var td4 = tr.insertCell(4);
+                const td0 = tr.insertCell(0);
+                const td1 = tr.insertCell(1);
+                const td2 = tr.insertCell(2);
+                const td3 = tr.insertCell(3);
+                const td4 = tr.insertCell(4);
                 td0.innerHTML = method.toUpperCase();
                 td1.innerHTML = `${protocol}://`;
                 td2.innerHTML = url;
-                var state = typeof state === 'string' ? state : 'unknown';
-                td3.innerHTML = state;
+                td3.innerHTML = typeof state === 'string' ? state : 'unknown';
                 td4.innerHTML = `<a href="/checks/edit?id=${id}">View / Edit / Delete</a>`;
 
             });
@@ -308,6 +312,31 @@ app.loadChecksListPage = () => {
             // Show the createCheck CTA
             document.getElementById('createCheckCTA').style.display = 'block';
         }
+    });
+};
+
+app.loadChecksEditPage = () => {
+    // Get the check id from the query string, if none is found then redirect back to dashboard
+    const checkId = typeof (window.location.href.split('=')[1]) === 'string' && window.location.href.split('=')[1].length > 0 && window.location.href.split('=')[1];
+    if (!checkId) window.location = '/checks/all';
+
+    app.client.request(undefined, 'api/checks', 'GET', { id: checkId }, undefined, (statusCode, { id, state, protocol, url, method, successCodes, timeoutSeconds }) => {
+        if (statusCode !== 200) return window.location = '/checks/all';
+
+        // Put the hidden id field into both forms
+        const hiddenIdInputs = document.querySelectorAll('input.hiddenIdInput');
+        hiddenIdInputs.forEach((input) => input.value = id);
+        // Put the data into the top form as values where needed
+        document.querySelector('#checksEdit1 .displayIdInput').value = id;
+        document.querySelector('#checksEdit1 .displayStateInput').value = state;
+        document.querySelector('#checksEdit1 .protocolInput').value = protocol;
+        document.querySelector('#checksEdit1 .urlInput').value = url;
+        document.querySelector('#checksEdit1 .methodInput').value = method;
+        document.querySelector('#checksEdit1 .timeoutInput').value = timeoutSeconds;
+        const successCodeCheckboxes = document.querySelectorAll('#checksEdit1 input.successCodesInput');
+        successCodeCheckboxes.forEach((checkbox) => {
+            if (successCodes.indexOf(parseInt(checkbox.value)) > -1) checkbox.checked = true;
+        });
     });
 };
 

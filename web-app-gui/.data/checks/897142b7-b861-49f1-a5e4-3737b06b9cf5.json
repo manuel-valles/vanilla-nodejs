@@ -1,1 +1,0 @@
-{"id":"897142b7-b861-49f1-a5e4-3737b06b9cf5","phone":"1234567890","protocol":"http","url":"google.com","method":"put","successCodes":[200,201,301,302,500],"timeoutSeconds":5,"state":"down","lastChecked":1705603082932}

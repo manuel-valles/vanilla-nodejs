@@ -61,7 +61,7 @@ const interpolate = (str, data) => {
 
     data = typeof (data) === 'object' && data !== null ? data : {};
 
-    // Add the templateGlobals to the data object, prepending their key name with "global."
+    // Add the templateGlobals to the data object, prepending their key name with 'global.'
     Object.keys(templateGlobals).forEach((keyName) => data[`global.${keyName}`] = templateGlobals[keyName]);
 
     // For each key in the data object, insert its value into the string at the corresponding placeholder

@@ -383,7 +383,7 @@ const public = (data, callback) => {
     if (data.method !== 'get') return callback(405);
 
     // Get requested file name
-    var trimmedAssetName = data.trimmedPath.replace('public/', '').trim();
+    const trimmedAssetName = data.trimmedPath.replace('public/', '').trim();
 
     if (trimmedAssetName.length === 0) return callback(404);
 
@@ -391,7 +391,7 @@ const public = (data, callback) => {
     _helpers.getStaticAsset(trimmedAssetName, (err, data) => {
         if (err || !data) return callback(404);
         // Determine the content type (default to plain text)
-        var contentType = 'plain';
+        let contentType = 'plain';
         switch (trimmedAssetName.split('.').pop()) {
             case 'css':
                 contentType = 'css';
@@ -560,6 +560,27 @@ const checksList = (data, callback) => {
     });
 }
 
+const checksEdit = (data, callback) => {
+    if (data.method !== 'get') return callback(405);
+
+    // No description needed since it is a private page
+    const templateData = {
+        'head.title': 'Check Details',
+        'body.class': 'checksEdit'
+    };
+
+    _helpers.getTemplate('checksEdit', templateData, (err, str) => {
+        if (err || !str) return callback(500, undefined, 'html');
+
+        // Add the universal header and footer
+        _helpers.addUniversalTemplates(str, templateData, (err, str) => {
+            if (err || !str) return callback(500, undefined, 'html');
+
+            callback(200, str, 'html');
+        });
+    });
+}
+
 const ping = (_, callback) => callback(200);
 const notFound = (_, callback) => callback(404);
 
@@ -569,6 +590,7 @@ module.exports = {
     accountEdit,
     checks,
     checksCreate,
+    checksEdit,
     checksList,
     favicon,
     index,
