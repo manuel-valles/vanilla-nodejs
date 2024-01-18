@@ -74,11 +74,10 @@ app.logUserOut = () => {
 
 // Bind the forms
 app.bindForms = () => {
-    // TODO: Fix this to handle multiple forms
-    const form = document.querySelector('form');
-    if (!form) return;
+    const allForms = document.querySelectorAll("form");
+    if (!allForms.length) return;
 
-    form.addEventListener('submit', (event) => {
+    allForms.forEach((form) => form.addEventListener('submit', (event) => {
         // Stop it from submitting
         event.preventDefault();
 
@@ -111,7 +110,7 @@ app.bindForms = () => {
             document.querySelector(errorSelector).innerHTML = typeof (responsePayload.Error) === 'string' ? responsePayload.Error : 'An error has occurred, please try again';;
             document.querySelector(errorSelector).style.display = 'block';
         });
-    });
+    }));
 };
 
 app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
