@@ -1,29 +1,8 @@
-// Dependencies
-const helpers = require('./../lib/helpers.js');
-const assert = require('assert');
+const unit = require('./unit');
 
 // Application logic for the test runner
 const tests = {
-  unit: {},
-};
-
-// Holder of all tests
-tests.unit['helpers.getANumber should return a number'] = (done) => {
-  const val = helpers.getANumber();
-  assert.equal(typeof val, 'number');
-  done();
-};
-
-tests.unit['helpers.getANumber should return 1'] = (done) => {
-  const val = helpers.getANumber();
-  assert.equal(val, 1);
-  done();
-};
-
-tests.unit['helpers.getANumber should return 2'] = (done) => {
-  const val = helpers.getANumber();
-  assert.equal(val, 2);
-  done();
+  unit,
 };
 
 // Count all the tests
