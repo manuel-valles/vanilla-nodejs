@@ -1,1 +1,1 @@
-{"id":"ec15956d-7344-4c79-9b00-6c8b523e79a0","phone":"1234567890","protocol":"https","url":"google.com","method":"get","successCodes":[200,201,301,302],"timeoutSeconds":5,"state":"up","lastChecked":1706960362836}
+{"id":"ec15956d-7344-4c79-9b00-6c8b523e79a0","phone":"1234567890","protocol":"https","url":"google.com","method":"get","successCodes":[200,201,301,302],"timeoutSeconds":5,"state":"up","lastChecked":1706961430157}
