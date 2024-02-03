@@ -7,6 +7,7 @@ const events = require('events');
 class CliEvents extends events {}
 const cliEvents = new CliEvents();
 const _data = require('./data');
+const _logs = require('./logs');
 
 // Create a vertical space
 const verticalSpace = (lines = 1) => console.log('\n'.repeat(lines));
@@ -56,7 +57,7 @@ const responsers = {
       'list checks --up --down':
         'Show a list of all the active checks in the system, including their state. The flag --up and --down are optional',
       'more check info --{checkId}': 'Show details of a specified check',
-      'list logs': 'Show a list of all the log files available to be read',
+      'list logs': 'Show a list of all the compressed log files',
       'more log info --{filename}': 'Show details of a specified log file',
     };
 
@@ -251,7 +252,26 @@ const responsers = {
     });
   },
   listLogs: () => {
-    console.log('You asked for list logs');
+    _logs.list(true, (err, logFileNames) => {
+      if (err || !logFileNames || logFileNames.length === 0) {
+        console.log('\x1b[33mNo logs found\x1b[0m');
+        return;
+      }
+
+      // Create a header for the logs
+      horizontalLine();
+      centered('\x1b[34mLOGS\x1b[0m');
+      horizontalLine();
+      verticalSpace(2);
+
+      // Log out each log file
+      logFileNames.forEach((logFileName) => {
+        if (logFileName.includes('.gz.b64')) {
+          console.log(logFileName.replace('.gz.b64', ''));
+          verticalSpace();
+        }
+      });
+    });
   },
   moreLogInfo: (str) => {
     console.log('You asked for more log info', str);
