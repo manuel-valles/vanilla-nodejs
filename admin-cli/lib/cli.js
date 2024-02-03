@@ -223,9 +223,32 @@ const responsers = {
       });
     });
   },
-
   moreCheckInfo: (str) => {
-    console.log('You asked for more check info', str);
+    // Get the ID from the string
+    const arr = str.split('--');
+    const checkId = typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
+    if (!checkId) {
+      console.log('\x1b[33m Invalid Check ID \x1b[0m');
+      return;
+    }
+
+    // Lookup the check
+    _data.read('checks', checkId, (err, checkData) => {
+      if (err || !checkData) {
+        console.log('\x1b[31m Check not found \x1b[0m');
+        return;
+      }
+
+      // Create a header for the user
+      horizontalLine();
+      centered('\x1b[34m CHECK Info \x1b[0m');
+      horizontalLine();
+      verticalSpace(2);
+
+      // Log out the user (JSON format with colors)
+      console.dir(checkData, { colors: true });
+      verticalSpace();
+    });
   },
   listLogs: () => {
     console.log('You asked for list logs');
