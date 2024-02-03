@@ -1,4 +1,6 @@
 const { randomUUID } = require('crypto');
+const urlModule = require('url');
+const dns = require('dns');
 const { maxChecks } = require('./config');
 const _data = require('./data');
 const _helpers = require('./helpers');
@@ -270,25 +272,32 @@ _checks.post = (data, callback) => {
       if (userChecks.length >= maxChecks)
         return callback(400, { error: `The user already has the maximum number of ${maxChecks} checks` });
 
-      const id = randomUUID();
-      const check = {
-        id,
-        phone,
-        protocol: _protocol,
-        url: _url,
-        method: _method,
-        successCodes: _successCodes,
-        timeoutSeconds: _timeoutSeconds,
-      };
+      // Verify that the URL given has DNS entries to avoid adding checks to invalid domains
+      const parsedUrl = urlModule.parse(`${_protocol}://${_url}`, true);
+      const hostName = typeof parsedUrl.hostname === 'string' && parsedUrl.hostname.length > 0 && parsedUrl.hostname;
+      dns.resolve(hostName, (err, records) => {
+        if (err || !records) return callback(400, { error: 'URL did not resolve to any DNS entries' });
 
-      _data.create('checks', id, check, (err) => {
-        if (err) return callback(500, { error: 'Could not create the new check' });
+        const id = randomUUID();
+        const check = {
+          id,
+          phone,
+          protocol: _protocol,
+          url: _url,
+          method: _method,
+          successCodes: _successCodes,
+          timeoutSeconds: _timeoutSeconds,
+        };
 
-        userData.checks = userChecks;
-        userData.checks.push(id);
-        _data.update('users', phone, userData, (err) =>
-          !err ? callback(200, check) : callback(500, { error: 'Could not update the user with the new check' }),
-        );
+        _data.create('checks', id, check, (err) => {
+          if (err) return callback(500, { error: 'Could not create the new check' });
+
+          userData.checks = userChecks;
+          userData.checks.push(id);
+          _data.update('users', phone, userData, (err) =>
+            !err ? callback(200, check) : callback(500, { error: 'Could not update the user with the new check' }),
+          );
+        });
       });
     });
   });
