@@ -13,22 +13,22 @@ const verticalSpace = (lines = 1) => console.log('\n'.repeat(lines));
 
 // Create a horizontal line across the screen
 const horizontalLine = () => {
-    // Get screen size
-    const width = process.stdout.columns || 80;
-    // Fill the line with dashes
-    const line = '-'.repeat(width);
-    console.log(line);
+  // Get screen size
+  const width = process.stdout.columns || 80;
+  // Fill the line with dashes
+  const line = '-'.repeat(width);
+  console.log(line);
 };
 
 // Create centered text on the screen
 const centered = (str) => {
-    str = typeof (str) === 'string' && str.trim().length > 0 ? str.trim() : '';
-    // Get screen size
-    const width = process.stdout.columns || 80;
-    // Calculate the left padding
-    const leftPadding = Math.floor((width - str.length) / 2);
-    // Put in left padded spaces before the string itself
-    console.log(' '.repeat(leftPadding), str);
+  str = typeof str === 'string' && str.trim().length > 0 ? str.trim() : '';
+  // Get screen size
+  const width = process.stdout.columns || 80;
+  // Calculate the left padding
+  const leftPadding = Math.floor((width - str.length) / 2);
+  // Put in left padded spaces before the string itself
+  console.log(' '.repeat(leftPadding), str);
 };
 
 // Input handlers
@@ -45,170 +45,216 @@ cliEvents.on('more log info', (str) => responsers.moreLogInfo(str));
 
 // Responders
 const responsers = {
-    help: () => {
-        const commands = {
-            'help': 'Show this help page',
-            'man': 'Alias of the "help" command',
-            'exit': 'Kill the CLI and the app',
-            'stats': 'Get statistics on the underlying operating system and resource utilization',
-            'list users': 'Show a list of all the registered users in the system',
-            'more user info --{userId}': 'Show details of a specific user',
-            'list checks --up --down': 'Show a list of all the active checks in the system, including their state. The flag --up and --down are optional',
-            'more check info --{checkId}': 'Show details of a specified check',
-            'list logs': 'Show a list of all the log files available to be read',
-            'more log info --{filename}': 'Show details of a specified log file'
-        };
+  help: () => {
+    const commands = {
+      help: 'Show this help page',
+      man: 'Alias of the "help" command',
+      exit: 'Kill the CLI and the app',
+      stats:
+        'Get statistics on the underlying operating system and resource utilization',
+      'list users': 'Show a list of all the registered users in the system',
+      'more user info --{userId}': 'Show details of a specific user',
+      'list checks --up --down':
+        'Show a list of all the active checks in the system, including their state. The flag --up and --down are optional',
+      'more check info --{checkId}': 'Show details of a specified check',
+      'list logs': 'Show a list of all the log files available to be read',
+      'more log info --{filename}': 'Show details of a specified log file',
+    };
 
-        // Show a header for help page that is as wide as the screen
-        horizontalLine();
-        centered('CLI Manual');
-        horizontalLine();
-        verticalSpace(2);
+    // Show a header for help page that is as wide as the screen
+    horizontalLine();
+    centered('CLI Manual');
+    horizontalLine();
+    verticalSpace(2);
 
-        // Show each command, followed by its explanation
-        Object.entries(commands).forEach(([key, value]) => {
-            const line = `\x1b[33m${key}\x1b[0m`;
-            const padding = 60 - line.length;
-            console.log(`${line}${' '.repeat(padding)}${value}`);
-            verticalSpace();
+    // Show each command, followed by its explanation
+    Object.entries(commands).forEach(([key, value]) => {
+      const line = `\x1b[33m${key}\x1b[0m`;
+      const padding = 60 - line.length;
+      console.log(`${line}${' '.repeat(padding)}${value}`);
+      verticalSpace();
+    });
+
+    verticalSpace(1);
+    horizontalLine();
+  },
+  exit: () => process.exit(0),
+  stats: () => {
+    // Compile an object of stats
+    const stats = {
+      'Load Average': os.loadavg().join(' | '),
+      'CPU Count': os.cpus().length,
+      'Free Memory': os.freemem(),
+      'Current Malloced Memory': v8.getHeapStatistics().malloced_memory,
+      'Peak Malloced Memory': v8.getHeapStatistics().peak_malloced_memory,
+      'Allocated Heap Used (%)': Math.round(
+        (v8.getHeapStatistics().used_heap_size /
+          v8.getHeapStatistics().total_heap_size) *
+          100
+      ),
+      'Available Heap Allocated (%)': Math.round(
+        (v8.getHeapStatistics().total_heap_size /
+          v8.getHeapStatistics().heap_size_limit) *
+          100
+      ),
+      Uptime: os.uptime() + ' Seconds',
+    };
+
+    // Create a header for the stats
+    horizontalLine();
+    centered('SYSTEM Statistics');
+    horizontalLine();
+    verticalSpace(2);
+
+    // Log out each stat
+    Object.entries(stats).forEach(([key, value]) => {
+      const line = `\x1b[33m${key}\x1b[0m`;
+      const padding = 60 - line.length;
+      console.log(`${line}${' '.repeat(padding)}${value}`);
+      verticalSpace();
+    });
+  },
+  listUsers: () => {
+    // Create a header for the users
+    horizontalLine();
+    centered('USERS');
+    horizontalLine();
+    verticalSpace(2);
+    _data.list('users', (err, userIds) => {
+      if (err || !userIds || userIds.length === 0) {
+        console.log('No users found');
+        return;
+      }
+
+      // Log out each user
+      userIds.forEach((userId) => {
+        _data.read('users', userId, (err, userData) => {
+          if (err || !userData) {
+            console.log('Error reading user data');
+            return;
+          }
+          const { firstName, lastName, phone, checks } = userData;
+          const displayedUser = {
+            Name: `${firstName} ${lastName}`,
+            Phone: phone,
+            Checks:
+              Array.isArray(checks) && checks.length > 0 ? checks.length : 0,
+          };
+
+          // Log out each user in the same line
+          console.log(
+            Object.entries(displayedUser)
+              .map(([key, value]) => `\x1b[33m${key}:\x1b[0m ${value}`)
+              .join('   ')
+          );
+          verticalSpace();
         });
-
-        verticalSpace(1);
-        horizontalLine();
-    },
-    exit: () => process.exit(0),
-    stats: () => {
-        // Compile an object of stats
-        const stats = {
-            'Load Average': os.loadavg().join(' | '),
-            'CPU Count': os.cpus().length,
-            'Free Memory': os.freemem(),
-            'Current Malloced Memory': v8.getHeapStatistics().malloced_memory,
-            'Peak Malloced Memory': v8.getHeapStatistics().peak_malloced_memory,
-            'Allocated Heap Used (%)': Math.round((v8.getHeapStatistics().used_heap_size / v8.getHeapStatistics().total_heap_size) * 100),
-            'Available Heap Allocated (%)': Math.round((v8.getHeapStatistics().total_heap_size / v8.getHeapStatistics().heap_size_limit) * 100),
-            'Uptime': os.uptime() + ' Seconds'
-        };
-
-        // Create a header for the stats
-        horizontalLine();
-        centered('SYSTEM Statistics');
-        horizontalLine();
-        verticalSpace(2);
-
-        // Log out each stat
-        Object.entries(stats).forEach(([key, value]) => {
-            const line = `\x1b[33m${key}\x1b[0m`;
-            const padding = 60 - line.length;
-            console.log(`${line}${' '.repeat(padding)}${value}`);
-            verticalSpace();
-        });
-    },
-    listUsers: () => {
-        _data.list('users', (err, userIds) => {
-            if (err || !userIds || userIds.length === 0) {
-                console.log('No users found');
-                return;
-            }
-
-            // Create a header for the users
-            horizontalLine();
-            centered('USERS');
-            horizontalLine();
-            verticalSpace(2);
-
-            // Log out each user
-            userIds.forEach((userId) => {
-                _data.read('users', userId, (err, userData) => {
-                    if (err || !userData) {
-                        console.log('Error reading user data');
-                        return;
-                    }
-                    const numberOfChecks = typeof (userData.checks) === 'object' && userData.checks instanceof Array && userData.checks.length > 0 ? userData.checks.length : 0;
-                    const line = `Name: \x1b[33m${userData.firstName} ${userData.lastName}\x1b[0m Phone: \x1b[33m${userData.phone}\x1b[0m Checks: \x1b[33m${numberOfChecks}\x1b[0m`;
-                    console.log(line);
-                    verticalSpace();
-                });
-            });
-        });
-    },
-    moreUserInfo: (str) => {
-        console.log('You asked for more user info', str);
-    },
-    listChecks: (str) => {
-        console.log('You asked for list checks', str);
-    },
-    moreCheckInfo: (str) => {
-        console.log('You asked for more check info', str);
-    },
-    listLogs: () => {
-        console.log('You asked for list logs');
-    },
-    moreLogInfo: (str) => {
-        console.log('You asked for more log info', str);
+      });
+    });
+  },
+  moreUserInfo: (str) => {
+    // Get the ID from the string
+    const arr = str.split('--');
+    const userId =
+      typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
+    if (!userId) {
+      console.log('Invalid user ID');
+      return;
     }
+
+    // Lookup the user
+    _data.read('users', userId, (err, userData) => {
+      if (err || !userData) {
+        console.log('User not found');
+        return;
+      }
+
+      // Remove the hashed password
+      delete userData.hashedPassword;
+
+      // Create a header for the user
+      horizontalLine();
+      centered('USER Info');
+      horizontalLine();
+      verticalSpace(2);
+
+      // Log out the user (JSON format with colors)
+      console.dir(userData, { colors: true });
+      verticalSpace();
+    });
+  },
+  listChecks: (str) => {
+    console.log('You asked for list checks', str);
+  },
+  moreCheckInfo: (str) => {
+    console.log('You asked for more check info', str);
+  },
+  listLogs: () => {
+    console.log('You asked for list logs');
+  },
+  moreLogInfo: (str) => {
+    console.log('You asked for more log info', str);
+  },
 };
 
 const processInput = (str) => {
-    str = typeof (str) === 'string' && str.trim().length > 0 && str.trim();
-    // Only process the input if the user type something
-    if (str) {
-        // Codify the unique strings that identify the unique questions allowed to be asked
-        const uniqueInputs = [
-            'help',
-            'man',
-            'exit',
-            'stats',
-            'list users',
-            'more user info',
-            'list checks',
-            'more check info',
-            'list logs',
-            'more log info'
-        ];
-        
-        const matchFound = uniqueInputs.some((input) => {
-            if(str.toLowerCase().includes(input)){
-                // Emit event that matches the unique input, and include the full string given
-                cliEvents.emit(input, str);
-                return true;
-            }
-        });
+  str = typeof str === 'string' && str.trim().length > 0 && str.trim();
+  // Only process the input if the user type something
+  if (str) {
+    // Codify the unique strings that identify the unique questions allowed to be asked
+    const uniqueInputs = [
+      'help',
+      'man',
+      'exit',
+      'stats',
+      'list users',
+      'more user info',
+      'list checks',
+      'more check info',
+      'list logs',
+      'more log info',
+    ];
 
-        // If no match is found, tell the user to try again
-        if(!matchFound){
-            console.log('Command not found, please try again');
-        }
+    const matchFound = uniqueInputs.some((input) => {
+      if (str.toLowerCase().includes(input)) {
+        // Emit event that matches the unique input, and include the full string given
+        cliEvents.emit(input, str);
+        return true;
+      }
+    });
+
+    // If no match is found, tell the user to try again
+    if (!matchFound) {
+      console.log('Command not found, please try again');
     }
+  }
 };
 
 const startCli = () => {
-    console.log('\x1b[34m%s\x1b[0m', `CLI running`);
+  console.log('\x1b[34m%s\x1b[0m', `CLI running`);
 
-    const interface = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        prompt: '> '
-    });
+  const interface = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: '> ',
+  });
 
-    // Create an initial prompt
+  // Create an initial prompt
+  interface.prompt();
+
+  // Handle each line of input separately
+  interface.on('line', (str) => {
+    // Send to the input processor
+    processInput(str);
+
+    // Re-initialize the prompt afterwards
     interface.prompt();
+  });
 
-    // Handle each line of input separately
-    interface.on('line', (str) => {
-        // Send to the input processor
-        processInput(str);
-
-        // Re-initialize the prompt afterwards
-        interface.prompt();
-    });
-
-    // If the user stops the CLI, kill the associated process
-    interface.on('close', () => process.exit(0));
+  // If the user stops the CLI, kill the associated process
+  interface.on('close', () => process.exit(0));
 };
 
-
-
 module.exports = {
-    startCli
+  startCli,
 };

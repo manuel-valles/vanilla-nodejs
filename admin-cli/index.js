@@ -10,7 +10,7 @@ const init = () => {
 };
 
 const app = {
-  init
+  init,
 };
 
 app.init();
