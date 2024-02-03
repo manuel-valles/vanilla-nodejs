@@ -1,21 +1,27 @@
 # Restful API with NodeJS
+
 This is a simple RESTful API with vanilla NodeJS.
 
 ## How to run
+
 ```bash
 NODE_ENV=staging node index.js
 ```
 
 ## How to test
+
 ```bash
 curl --location 'localhost:3000/sample' --data 'This is the body'
 ```
 
 ## How to generate SSL certificates
+
 ```bash
 openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem
 ```
+
 Example prompt for localhost:
+
 ```
 Country Name (2 letter code) [AU]:UK
 State or Province Name (full name) [Some-State]:England
@@ -27,14 +33,17 @@ Email Address []:manukem@gmail.com
 ```
 
 ## How to test HTTPS
+
 ```bash
 curl -k 'https://localhost:3001/sample' --data 'This is the body'
 ```
+
 > Note: `-k` is to ignore the self-signed certificate warning. Otherwise, it will throw an error message that indicates that curl is unable to verify the legitimacy of the server because you are using a self-signed certificate. This is expected behavior for self-signed certificates, as they are not signed by a trusted certificate authority.
 
-
 ## How to test External API
+
 You can use the [Twilio API](https://www.twilio.com/try-twilio) to send SMS messages. You will need to create an account and get your own credentials. Then, you can use the following command to test the API:
+
 ```js
 // index.js
 const { sendTwilioSms } = require('./lib/helpers');
@@ -44,7 +53,9 @@ sendTwilioSms('***', 'Hello!', (err) => console.log(err));
 ```
 
 ## How to run debug mode
+
 ```bash
 NODE_ENV=staging NODE_DEBUG=workers,server nodemon .
 ```
+
 > NOTE: You can add some default NodeJS debugging events to the `NODE_DEBUG` environment variable. For example, `NODE_DEBUG=http,https` will enable the `http`, and `https` debugging events.

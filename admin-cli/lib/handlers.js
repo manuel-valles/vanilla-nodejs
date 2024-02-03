@@ -55,7 +55,7 @@ _users.post = (data, callback) => {
       tosAgreement,
     };
     _data.create('users', _phone, user, (err) =>
-      !err ? callback(200) : callback(500, { error: 'Could not create the new user' })
+      !err ? callback(200) : callback(500, { error: 'Could not create the new user' }),
     );
   });
 };
@@ -102,7 +102,7 @@ _users.put = (data, callback) => {
       if (_password) userData.hashedPassword = _helpers.hash(_password);
 
       _data.update('users', _phone, userData, (err) =>
-        !err ? callback(200) : callback(500, { error: 'Could not update the user' })
+        !err ? callback(200) : callback(500, { error: 'Could not update the user' }),
       );
     });
   });
@@ -181,7 +181,7 @@ _tokens.post = (data, callback) => {
     };
 
     _data.create('tokens', id, token, (err) =>
-      !err ? callback(200, token) : callback(500, { error: 'Could not create a token' })
+      !err ? callback(200, token) : callback(500, { error: 'Could not create a token' }),
     );
   });
 };
@@ -208,7 +208,7 @@ _tokens.put = (data, callback) => {
     tokenData.expires = Date.now() + 60 * 60 * 1000;
 
     _data.update('tokens', id, tokenData, (err) =>
-      !err ? callback(200) : callback(500, { error: 'Could not update the token' })
+      !err ? callback(200) : callback(500, { error: 'Could not update the token' }),
     );
   });
 };
@@ -221,14 +221,14 @@ _tokens.delete = (data, callback) => {
     if (err || !data) return callback(400, { error: 'The specified token does not exist' });
 
     _data.remove('tokens', id, (err) =>
-      !err ? callback(200) : callback(500, { error: 'Could not delete the specified token' })
+      !err ? callback(200) : callback(500, { error: 'Could not delete the specified token' }),
     );
   });
 };
 
 _tokens.verifyToken = (id, phone, callback) =>
   _data.read('tokens', id, (err, tokenData) =>
-    !err && tokenData && tokenData.phone === phone && tokenData.expires > Date.now() ? callback(true) : callback(false)
+    !err && tokenData && tokenData.phone === phone && tokenData.expires > Date.now() ? callback(true) : callback(false),
   );
 
 const tokens = (data, callback) => {
@@ -287,7 +287,7 @@ _checks.post = (data, callback) => {
         userData.checks = userChecks;
         userData.checks.push(id);
         _data.update('users', phone, userData, (err) =>
-          !err ? callback(200, check) : callback(500, { error: 'Could not update the user with the new check' })
+          !err ? callback(200, check) : callback(500, { error: 'Could not update the user with the new check' }),
         );
       });
     });
@@ -341,7 +341,7 @@ _checks.put = (data, callback) => {
       if (_timeoutSeconds) checkData.timeoutSeconds = _timeoutSeconds;
 
       _data.update('checks', _id, checkData, (err) =>
-        !err ? callback(200) : callback(500, { error: 'Could not update the check' })
+        !err ? callback(200) : callback(500, { error: 'Could not update the check' }),
       );
     });
   });
@@ -373,7 +373,7 @@ _checks.delete = (data, callback) => {
 
           userData.checks.splice(checkPosition, 1);
           _data.update('users', checkData.phone, userData, (err) =>
-            !err ? callback(200) : callback(500, { error: 'Could not update the user' })
+            !err ? callback(200) : callback(500, { error: 'Could not update the user' }),
           );
         });
       });

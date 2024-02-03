@@ -89,10 +89,10 @@ const responsers = {
       'Current Malloced Memory': v8.getHeapStatistics().malloced_memory,
       'Peak Malloced Memory': v8.getHeapStatistics().peak_malloced_memory,
       'Allocated Heap Used (%)': Math.round(
-        (v8.getHeapStatistics().used_heap_size / v8.getHeapStatistics().total_heap_size) * 100
+        (v8.getHeapStatistics().used_heap_size / v8.getHeapStatistics().total_heap_size) * 100,
       ),
       'Available Heap Allocated (%)': Math.round(
-        (v8.getHeapStatistics().total_heap_size / v8.getHeapStatistics().heap_size_limit) * 100
+        (v8.getHeapStatistics().total_heap_size / v8.getHeapStatistics().heap_size_limit) * 100,
       ),
       Uptime: os.uptime() + ' Seconds',
     };
@@ -142,7 +142,7 @@ const responsers = {
           console.log(
             Object.entries(displayedUser)
               .map(([key, value]) => `\x1b[33m${key}:\x1b[0m \x1b[34m${value}\x1b[0m`)
-              .join('   ')
+              .join('   '),
           );
           verticalSpace();
         });
@@ -217,7 +217,7 @@ const responsers = {
             console.log(
               Object.entries(displayedCheck)
                 .map(([key, value]) => `\x1b[33m${key}:\x1b[0m \x1b[34m${value}\x1b[0m`)
-                .join('   ')
+                .join('   '),
             );
             verticalSpace();
           }

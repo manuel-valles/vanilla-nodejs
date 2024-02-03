@@ -99,7 +99,7 @@ const unifiedServer = (req, res) => {
     try {
       // Route the request to the handler specified in the router
       chosenHandler(data, (statusCode, payload, contentType) =>
-        processHandlerResponse(res, method, trimmedPath, statusCode, payload, contentType)
+        processHandlerResponse(res, method, trimmedPath, statusCode, payload, contentType),
       );
     } catch (error) {
       debug('\x1b[31m%s\x1b[0m', error);

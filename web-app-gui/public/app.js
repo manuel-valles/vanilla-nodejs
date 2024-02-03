@@ -102,8 +102,8 @@ app.bindForms = () => {
             type === 'checkbox' && classOfElement.indexOf('multiselect') === -1
               ? checked
               : classOfElement.indexOf('intval') === -1
-              ? value
-              : parseInt(value);
+                ? value
+                : parseInt(value);
           // When using HTML forms, browsers typically only support GET and POST requests
           // Override the method of the form if the input's name is _method (for PUT and DELETE requests)
           if (name === '_method') {
@@ -145,7 +145,7 @@ app.bindForms = () => {
           typeof Error === 'string' ? Error : 'An error has occurred, please try again';
         document.querySelector(errorSelector).style.display = 'block';
       });
-    })
+    }),
   );
 };
 
@@ -171,7 +171,7 @@ app.formResponseProcessor = (formId, requestPayload, responsePayload) => {
           app.setSessionToken(newResponsePayload);
           window.location = '/checks/all';
         }
-      }
+      },
     );
   }
   // If login was successful, set the token in local storage and redirect the user
@@ -283,7 +283,7 @@ app.loadAccountEditPage = () => {
 
       // Put the hidden phone field into both forms
       document.querySelectorAll('input.hiddenPhoneNumberInput').forEach((input) => (input.value = phone));
-    }
+    },
   );
 };
 
@@ -331,7 +331,7 @@ app.loadChecksListPage = () => {
           td2.innerHTML = url;
           td3.innerHTML = typeof state === 'string' ? state : 'unknown';
           td4.innerHTML = `<a href="/checks/edit?id=${id}">View / Edit / Delete</a>`;
-        }
+        },
       );
     });
 
@@ -373,7 +373,7 @@ app.loadChecksEditPage = () => {
       successCodeCheckboxes.forEach((checkbox) => {
         if (successCodes.indexOf(parseInt(checkbox.value)) > -1) checkbox.checked = true;
       });
-    }
+    },
   );
 };
 
@@ -391,7 +391,7 @@ app.init = () => {
   // Renew token every minute
   setInterval(
     app.renewToken((err) => !err && console.log(`Token renewed successfully @${Date.now()}`)),
-    1000 * 60
+    1000 * 60,
   );
 
   // Load data on page
