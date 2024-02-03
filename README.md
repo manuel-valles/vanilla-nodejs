@@ -2,9 +2,9 @@
 
 A series of _NodeJS_ projects **without external libraries**:
 
-- RESTful API
-- Web App GUI
-- CLI
+- [RESTful API](./restful-api)
+- [Web App GUI](./web-app-gui)
+- [Admin CLI](./admin-cli/) (this also includes unit and integration tests)
 
 ## Generic Notes
 

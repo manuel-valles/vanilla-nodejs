@@ -8,8 +8,12 @@ const { hashingSecret, templateGlobals, twilio } = require('./config');
 /*
  * Helper functions
  */
+
+// Create a SHA256 hash
 const hash = (str) =>
   typeof str === 'string' && str.length > 0 && crypto.createHmac('sha256', hashingSecret).update(str).digest('hex');
+
+// Parse a JSON string to an object in all cases, without throwing
 const parseJsonToObject = (str) => {
   try {
     return JSON.parse(str);
@@ -17,6 +21,8 @@ const parseJsonToObject = (str) => {
     return {};
   }
 };
+
+// Send an SMS via Twilio
 const sendTwilioSms = (phone, msg, callback) => {
   phone = trimStringIfValid(phone, 9, 10);
   msg = trimStringIfValid(msg, 0, 1600);
@@ -125,6 +131,9 @@ const getStaticAsset = (fileName, callback) => {
   });
 };
 
+// Sample for testing
+const getANumber = () => 1;
+
 /*
  * Validation functions
  */
@@ -147,6 +156,7 @@ const isValidUUID = (uuid) =>
 
 module.exports = {
   addUniversalTemplates,
+  getANumber,
   getTemplate,
   getStaticAsset,
   hash,

@@ -27,3 +27,9 @@ NODE_ENV=staging node index.js
 ```
 
 > NOTE: For more notes related to RESTful APIs please check the [restful-api/README.md](../restful-api/README.md) file.
+
+## How to run test
+
+```bash
+node test
+```
