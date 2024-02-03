@@ -1,8 +1,10 @@
-const unit = require('./unit');
+// Override the NODE_ENV variable
+process.env.NODE_ENV = 'testing';
 
 // Application logic for the test runner
 const tests = {
-  unit,
+  unit: require('./unit'),
+  api: require('./api'),
 };
 
 // Count all the tests
@@ -79,6 +81,9 @@ const produceTestReport = (limit, successes, errors) => {
 
   console.log('');
   console.log('--------END TEST REPORT--------');
+
+  // Kill the process after the tests are done
+  process.exit(0);
 };
 
 // Run the tests

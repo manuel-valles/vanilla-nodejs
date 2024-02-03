@@ -19,9 +19,27 @@ const environments = {
       baseUrl: 'http://localhost:3000/',
     },
   },
-  production: {
+  testing: {
     httpPort: 4000,
     httpsPort: 4001,
+    envName: 'testing',
+    hashingSecret: 'thisIsASecret',
+    maxChecks: 5,
+    twilio: {
+      accountSid: '',
+      authToken: '',
+      fromPhone: '',
+    },
+    templateGlobals: {
+      appName: 'Web App GUI',
+      authorName: 'Manu Kem',
+      yearCreated,
+      baseUrl: 'http://localhost:3000/',
+    },
+  },
+  production: {
+    httpPort: 5000,
+    httpsPort: 5001,
     envName: 'production',
     hashingSecret: 'thisIsAlsoASecret',
     maxChecks: 5,
