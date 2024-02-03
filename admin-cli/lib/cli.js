@@ -6,6 +6,7 @@ const v8 = require('v8');
 const events = require('events');
 class CliEvents extends events {}
 const cliEvents = new CliEvents();
+const _data = require('./data');
 
 // Create a vertical space
 const verticalSpace = (lines = 1) => console.log('\n'.repeat(lines));
@@ -87,7 +88,6 @@ const responsers = {
             'Allocated Heap Used (%)': Math.round((v8.getHeapStatistics().used_heap_size / v8.getHeapStatistics().total_heap_size) * 100),
             'Available Heap Allocated (%)': Math.round((v8.getHeapStatistics().total_heap_size / v8.getHeapStatistics().heap_size_limit) * 100),
             'Uptime': os.uptime() + ' Seconds'
-
         };
 
         // Create a header for the stats
@@ -105,7 +105,32 @@ const responsers = {
         });
     },
     listUsers: () => {
-        console.log('You asked for list users');
+        _data.list('users', (err, userIds) => {
+            if (err || !userIds || userIds.length === 0) {
+                console.log('No users found');
+                return;
+            }
+
+            // Create a header for the users
+            horizontalLine();
+            centered('USERS');
+            horizontalLine();
+            verticalSpace(2);
+
+            // Log out each user
+            userIds.forEach((userId) => {
+                _data.read('users', userId, (err, userData) => {
+                    if (err || !userData) {
+                        console.log('Error reading user data');
+                        return;
+                    }
+                    const numberOfChecks = typeof (userData.checks) === 'object' && userData.checks instanceof Array && userData.checks.length > 0 ? userData.checks.length : 0;
+                    const line = `Name: \x1b[33m${userData.firstName} ${userData.lastName}\x1b[0m Phone: \x1b[33m${userData.phone}\x1b[0m Checks: \x1b[33m${numberOfChecks}\x1b[0m`;
+                    console.log(line);
+                    verticalSpace();
+                });
+            });
+        });
     },
     moreUserInfo: (str) => {
         console.log('You asked for more user info', str);
