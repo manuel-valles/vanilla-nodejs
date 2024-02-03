@@ -50,8 +50,7 @@ const responsers = {
       help: 'Show this help page',
       man: 'Alias of the "help" command',
       exit: 'Kill the CLI and the app',
-      stats:
-        'Get statistics on the underlying operating system and resource utilization',
+      stats: 'Get statistics on the underlying operating system and resource utilization',
       'list users': 'Show a list of all the registered users in the system',
       'more user info --{userId}': 'Show details of a specific user',
       'list checks --up --down':
@@ -88,14 +87,10 @@ const responsers = {
       'Current Malloced Memory': v8.getHeapStatistics().malloced_memory,
       'Peak Malloced Memory': v8.getHeapStatistics().peak_malloced_memory,
       'Allocated Heap Used (%)': Math.round(
-        (v8.getHeapStatistics().used_heap_size /
-          v8.getHeapStatistics().total_heap_size) *
-          100
+        (v8.getHeapStatistics().used_heap_size / v8.getHeapStatistics().total_heap_size) * 100
       ),
       'Available Heap Allocated (%)': Math.round(
-        (v8.getHeapStatistics().total_heap_size /
-          v8.getHeapStatistics().heap_size_limit) *
-          100
+        (v8.getHeapStatistics().total_heap_size / v8.getHeapStatistics().heap_size_limit) * 100
       ),
       Uptime: os.uptime() + ' Seconds',
     };
@@ -115,16 +110,17 @@ const responsers = {
     });
   },
   listUsers: () => {
-    // Create a header for the users
-    horizontalLine();
-    centered('USERS');
-    horizontalLine();
-    verticalSpace(2);
     _data.list('users', (err, userIds) => {
       if (err || !userIds || userIds.length === 0) {
-        console.log('No users found');
+        console.log('\x1b[33mNo users found\x1b[0m');
         return;
       }
+
+      // Create a header for the users
+      horizontalLine();
+      centered('\x1b[34mUSERS\x1b[0m');
+      horizontalLine();
+      verticalSpace(2);
 
       // Log out each user
       userIds.forEach((userId) => {
@@ -137,14 +133,13 @@ const responsers = {
           const displayedUser = {
             Name: `${firstName} ${lastName}`,
             Phone: phone,
-            Checks:
-              Array.isArray(checks) && checks.length > 0 ? checks.length : 0,
+            Checks: Array.isArray(checks) && checks.length > 0 ? checks.length : 0,
           };
 
           // Log out each user in the same line
           console.log(
             Object.entries(displayedUser)
-              .map(([key, value]) => `\x1b[33m${key}:\x1b[0m ${value}`)
+              .map(([key, value]) => `\x1b[33m${key}:\x1b[0m \x1b[34m${value}\x1b[0m`)
               .join('   ')
           );
           verticalSpace();
@@ -155,8 +150,7 @@ const responsers = {
   moreUserInfo: (str) => {
     // Get the ID from the string
     const arr = str.split('--');
-    const userId =
-      typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
+    const userId = typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
     if (!userId) {
       console.log('Invalid user ID');
       return;
@@ -184,8 +178,52 @@ const responsers = {
     });
   },
   listChecks: (str) => {
-    console.log('You asked for list checks', str);
+    _data.list('checks', (err, checkIds) => {
+      if (err || !checkIds || checkIds.length === 0) {
+        console.log('\x1b[33mNo checks found\x1b[0m');
+        return;
+      }
+
+      // Create a header for the checks
+      horizontalLine();
+      centered('\x1b[34mCHECKS\x1b[0m');
+      horizontalLine();
+      verticalSpace(2);
+
+      // Log out each check
+      checkIds.forEach((checkId) => {
+        _data.read('checks', checkId, (err, checkData) => {
+          if (err || !checkData) {
+            console.log('\x1b[31mError reading check data\x1b[0m');
+            return;
+          }
+
+          const { id, method, protocol, url, state } = checkData;
+          const checkState = typeof state === 'string' ? state : 'unknown';
+
+          const displayedCheck = {
+            ID: id,
+            Method: method.toUpperCase(),
+            Protocol: protocol,
+            URL: url,
+            State: checkState,
+          };
+
+          // If the user hasn't specified any state or the state matches the filter
+          if (!str.includes('--') || str.toLowerCase().includes('--' + checkState)) {
+            // Log out each check in the same line with colors
+            console.log(
+              Object.entries(displayedCheck)
+                .map(([key, value]) => `\x1b[33m${key}:\x1b[0m \x1b[34m${value}\x1b[0m`)
+                .join('   ')
+            );
+            verticalSpace();
+          }
+        });
+      });
+    });
   },
+
   moreCheckInfo: (str) => {
     console.log('You asked for more check info', str);
   },
