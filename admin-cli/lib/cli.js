@@ -1,6 +1,8 @@
 const readline = require('readline');
 const util = require('util');
 const debug = util.debuglog('cli');
+const os = require('os');
+const v8 = require('v8');
 const events = require('events');
 class CliEvents extends events {}
 const cliEvents = new CliEvents();
@@ -16,7 +18,6 @@ const horizontalLine = () => {
     const line = '-'.repeat(width);
     console.log(line);
 };
-
 
 // Create centered text on the screen
 const centered = (str) => {
@@ -76,7 +77,32 @@ const responsers = {
     },
     exit: () => process.exit(0),
     stats: () => {
-        console.log('You asked for stats');
+        // Compile an object of stats
+        const stats = {
+            'Load Average': os.loadavg().join(' | '),
+            'CPU Count': os.cpus().length,
+            'Free Memory': os.freemem(),
+            'Current Malloced Memory': v8.getHeapStatistics().malloced_memory,
+            'Peak Malloced Memory': v8.getHeapStatistics().peak_malloced_memory,
+            'Allocated Heap Used (%)': Math.round((v8.getHeapStatistics().used_heap_size / v8.getHeapStatistics().total_heap_size) * 100),
+            'Available Heap Allocated (%)': Math.round((v8.getHeapStatistics().total_heap_size / v8.getHeapStatistics().heap_size_limit) * 100),
+            'Uptime': os.uptime() + ' Seconds'
+
+        };
+
+        // Create a header for the stats
+        horizontalLine();
+        centered('SYSTEM Statistics');
+        horizontalLine();
+        verticalSpace(2);
+
+        // Log out each stat
+        Object.entries(stats).forEach(([key, value]) => {
+            const line = `\x1b[33m${key}\x1b[0m`;
+            const padding = 60 - line.length;
+            console.log(`${line}${' '.repeat(padding)}${value}`);
+            verticalSpace();
+        });
     },
     listUsers: () => {
         console.log('You asked for list users');
