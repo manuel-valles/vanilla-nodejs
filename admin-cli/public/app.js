@@ -102,8 +102,8 @@ app.bindForms = () => {
             type === 'checkbox' && classOfElement.indexOf('multiselect') === -1
               ? checked
               : classOfElement.indexOf('intval') === -1
-                ? value
-                : parseInt(value);
+              ? value
+              : parseInt(value);
           // When using HTML forms, browsers typically only support GET and POST requests
           // Override the method of the form if the input's name is _method (for PUT and DELETE requests)
           if (name === '_method') {
@@ -140,9 +140,9 @@ app.bindForms = () => {
         if (statusCode === 403) return app.logUserOut();
 
         // Set the formError field with the error text and show it
-        const { Error } = responsePayload;
+        const { error } = responsePayload;
         document.querySelector(errorSelector).innerHTML =
-          typeof Error === 'string' ? Error : 'An error has occurred, please try again';
+          typeof error === 'string' ? error : 'An error has occurred, please try again';
         document.querySelector(errorSelector).style.display = 'block';
       });
     }),

@@ -103,7 +103,7 @@ const unifiedServer = (req, res) => {
       );
     } catch (error) {
       debug('\x1b[31m%s\x1b[0m', error);
-      processHandlerResponse(res, method, trimmedPath, 500, { Error: 'An unknown error has occurred' });
+      processHandlerResponse(res, method, trimmedPath, 500, { error: 'An unknown error has occurred' });
     }
   });
 };
