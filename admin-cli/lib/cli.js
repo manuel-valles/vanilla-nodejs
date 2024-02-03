@@ -8,6 +8,7 @@ class CliEvents extends events {}
 const cliEvents = new CliEvents();
 const _data = require('./data');
 const _logs = require('./logs');
+const { parseJsonToObject } = require('./helpers');
 
 // Create a vertical space
 const verticalSpace = (lines = 1) => console.log('\n'.repeat(lines));
@@ -274,7 +275,38 @@ const responsers = {
     });
   },
   moreLogInfo: (str) => {
-    console.log('You asked for more log info', str);
+    // Get the ID from the string
+    const arr = str.split('--');
+    const logFileNae = typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
+    if (!logFileNae) {
+      console.log('\x1b[33m Missing log filename \x1b[0m');
+      return;
+    }
+
+    // Create a header for the user
+    horizontalLine();
+    centered('\x1b[34m LOG Info \x1b[0m');
+    horizontalLine();
+    verticalSpace(2);
+
+    // Decompress the log file
+    _logs.decompress(logFileNae, (err, strData) => {
+      if (err || !strData) {
+        console.log('\x1b[31m File not found \x1b[0m');
+        return;
+      }
+
+      // Split into lines
+      const lines = strData.split('\n');
+
+      lines.forEach((jsonString) => {
+        const logObject = parseJsonToObject(jsonString);
+        if (logObject.check) {
+          console.dir(logObject, { colors: true });
+          verticalSpace();
+        }
+      });
+    });
   },
 };
 
