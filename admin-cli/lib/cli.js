@@ -349,7 +349,7 @@ const startCli = () => {
   const interface = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: '> ',
+    prompt: '',
   });
 
   // Create an initial prompt

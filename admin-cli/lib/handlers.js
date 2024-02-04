@@ -1,6 +1,9 @@
 const { randomUUID } = require('crypto');
 const urlModule = require('url');
 const dns = require('dns');
+const performance = require('perf_hooks').performance;
+const util = require('util');
+const debug = util.debuglog('performance');
 const { maxChecks } = require('./config');
 const _data = require('./data');
 const _helpers = require('./helpers');
@@ -162,18 +165,25 @@ const users = (data, callback) => {
 const _tokens = {};
 
 _tokens.post = (data, callback) => {
+  performance.mark('entered function');
   const { phone, password } = data.payload;
   const _phone = _helpers.trimStringIfValid(phone, 9, 10);
   const _password = _helpers.trimStringIfValid(password);
+  performance.mark('inputs validated');
 
   if (!_phone || !_password) return callback(400, { error: 'Missing required fields' });
 
+  performance.mark('beginning user lookup');
   _data.read('users', _phone, (err, userData) => {
+    performance.mark('user lookup complete');
     if (err || !userData) return callback(400, { error: 'Could not find the specified user' });
 
+    performance.mark('beginning password hashing');
     const hashedPassword = _helpers.hash(_password);
+    performance.mark('password hashing complete');
     if (hashedPassword !== userData.hashedPassword) return callback(400, { error: 'Invalid credentials' });
 
+    performance.mark('creating data for token');
     const id = randomUUID();
     const expires = Date.now() + 60 * 60 * 1000; // 1 hour
     const token = {
@@ -182,9 +192,26 @@ _tokens.post = (data, callback) => {
       phone: _phone,
     };
 
-    _data.create('tokens', id, token, (err) =>
-      !err ? callback(200, token) : callback(500, { error: 'Could not create a token' }),
-    );
+    performance.mark('beginning storing token');
+    _data.create('tokens', id, token, (err) => {
+      performance.mark('storing token complete');
+
+      // Gather measurements
+      performance.measure('Beginning to end', 'entered function', 'storing token complete');
+      performance.measure('Validating user inputs', 'entered function', 'inputs validated');
+      performance.measure('User lookup', 'beginning user lookup', 'user lookup complete');
+      performance.measure('Password hashing', 'beginning password hashing', 'password hashing complete');
+      performance.measure('Token data creation', 'creating data for token', 'beginning storing token');
+      performance.measure('Token storing', 'beginning storing token', 'storing token complete');
+
+      // Log out them
+      const measurements = performance.getEntriesByType('measure');
+      measurements.forEach((measurement) => {
+        debug('\x1b[33m%s\x1b[0m', `${measurement.name} ${measurement.duration}`);
+      });
+
+      !err ? callback(200, token) : callback(500, { error: 'Could not create a token' });
+    });
   });
 };
 

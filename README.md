@@ -4,7 +4,7 @@ A series of _NodeJS_ projects **without external libraries**:
 
 - [RESTful API](./restful-api)
 - [Web App GUI](./web-app-gui)
-- [Admin CLI](./admin-cli/) (this also includes unit and integration tests)
+- [Admin CLI](./admin-cli/) (this also includes tests, and stability and performance improvements)
 
 ## Generic Notes
 
