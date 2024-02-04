@@ -103,3 +103,10 @@ You can use the `net` module to create a TCP server and client. An example can b
 
 - `node misc/net-server.js`
 - `node misc/net-client.js`
+
+## Using TLS/SSL
+
+You can use the `tls` module to create a secure server and client. An example can be found in the [misc](./misc) directory, where you will need to run two terminal windows to run the server and the client:
+
+- `node misc/tls-server.js`
+- `node misc/tls-client.js`
