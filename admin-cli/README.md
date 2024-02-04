@@ -89,3 +89,10 @@ You can use the `vm` module to run code within a secure environment. An example 
 ```bash
 node misc/vm.js
 ```
+
+## Using UDP/Datagram Sockets
+
+You can use the `dgram` module to create a UDP server and client. An example can be found in the [misc](./misc) directory, where you will need to run two terminal windows to run the server and the client:
+
+- `node misc/udp-server.js`
+- `node misc/udp-client.js`
