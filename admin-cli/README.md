@@ -96,3 +96,10 @@ You can use the `dgram` module to create a UDP server and client. An example can
 
 - `node misc/udp-server.js`
 - `node misc/udp-client.js`
+
+## Using Net Module
+
+You can use the `net` module to create a TCP server and client. An example can be found in the [misc](./misc) directory, where you will need to run two terminal windows to run the server and the client:
+
+- `node misc/net-server.js`
+- `node misc/net-client.js`
