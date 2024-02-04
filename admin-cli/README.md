@@ -110,3 +110,11 @@ You can use the `tls` module to create a secure server and client. An example ca
 
 - `node misc/tls-server.js`
 - `node misc/tls-client.js`
+
+## Using REPL
+
+You can use the `repl` module to create a `Read-Eval-Print-Loop`. An example can be found in the [misc](./misc) directory, where you will need to run the following command:
+
+```bash
+node misc/repl.js
+```
