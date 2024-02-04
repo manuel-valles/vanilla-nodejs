@@ -6,6 +6,7 @@ const v8 = require('v8');
 const events = require('events');
 class CliEvents extends events {}
 const cliEvents = new CliEvents();
+const childProcess = require('child_process');
 const _data = require('./data');
 const _logs = require('./logs');
 const { parseJsonToObject } = require('./helpers');
@@ -253,8 +254,12 @@ const responsers = {
     });
   },
   listLogs: () => {
-    _logs.list(true, (err, logFileNames) => {
-      if (err || !logFileNames || logFileNames.length === 0) {
+    const ls = childProcess.spawn('ls', ['.logs/']);
+    ls.stdout.on('data', (data) => {
+      // Explode into separate lines
+      const dataStr = data.toString();
+      const logFileNames = dataStr.split('\n');
+      if (logFileNames.length === 0) {
         console.log('\x1b[33mNo logs found\x1b[0m');
         return;
       }
@@ -267,18 +272,20 @@ const responsers = {
 
       // Log out each log file
       logFileNames.forEach((logFileName) => {
-        if (logFileName.includes('.gz.b64')) {
+        if (typeof logFileName === 'string' && logFileName.length > 0 && logFileName.includes('.gz.b64')) {
           console.log(logFileName.replace('.gz.b64', ''));
           verticalSpace();
         }
       });
+
+      horizontalLine();
     });
   },
   moreLogInfo: (str) => {
     // Get the ID from the string
     const arr = str.split('--');
-    const logFileNae = typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
-    if (!logFileNae) {
+    const logFileName = typeof arr[1] === 'string' && arr[1].trim().length > 0 && arr[1].trim();
+    if (!logFileName) {
       console.log('\x1b[33m Missing log filename \x1b[0m');
       return;
     }
@@ -290,7 +297,7 @@ const responsers = {
     verticalSpace(2);
 
     // Decompress the log file
-    _logs.decompress(logFileNae, (err, strData) => {
+    _logs.decompress(logFileName, (err, strData) => {
       if (err || !strData) {
         console.log('\x1b[31m File not found \x1b[0m');
         return;
