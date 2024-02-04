@@ -77,4 +77,15 @@ Another powerful feature of Node.js is the ability to create child processes. Th
 
 ## Using the HTTP/2 Module
 
-You can use the `HTTP/2` module to create a secure and efficient server. An example can be found in the [misc](./misc) directory.
+You can use the `HTTP/2` module to create a secure and efficient server. An example can be found in the [misc](./misc) directory, where you will need to run two terminal windows to run the server and the client:
+
+- `node misc/http2-server.js`
+- `node misc/http2-client.js`
+
+## Using VM Module
+
+You can use the `vm` module to run code within a secure environment. An example can be found in the [misc](./misc) directory, where you will need to run the following command:
+
+```bash
+node misc/vm.js
+```
