@@ -74,3 +74,7 @@ node index-cluster.js
 ## Using Child Processes
 
 Another powerful feature of Node.js is the ability to create child processes. This allows you to execute other scripts or commands in parallel. An example can be found in the [cli.js](./lib/cli.js) file.
+
+## Using the HTTP/2 Module
+
+You can use the `HTTP/2` module to create a secure and efficient server. An example can be found in the [misc](./misc) directory.
