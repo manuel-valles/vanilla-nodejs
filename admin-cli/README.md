@@ -2,7 +2,7 @@
 
 CLI using an event-driven design pattern.
 
-## Use case
+## Use Case
 
 The app will respond to a number of requests (inputs) by an admin user.
 
@@ -20,7 +20,7 @@ The app will respond to a number of requests (inputs) by an admin user.
 - `list logs`
 - `more log info --{logId}`
 
-## Run the existing app
+## Run the Existing App
 
 ```bash
 NODE_ENV=staging node index.js
@@ -28,13 +28,13 @@ NODE_ENV=staging node index.js
 
 > NOTE: For more notes related to RESTful APIs please check the [restful-api/README.md](../restful-api/README.md) file.
 
-## Run tests
+## Run Tests
 
 ```bash
 node test
 ```
 
-## Run th performance test
+## Run Performance Test
 
 - Run the app in performance mode:
 
@@ -61,4 +61,12 @@ PERFORMANCE 10368: User lookup 1.4989050002768636
 PERFORMANCE 10368: Password hashing 0.26225699996575713
 PERFORMANCE 10368: Token data creation 0.2491029999218881
 PERFORMANCE 10368: Token storing 0.7726020002737641
+```
+
+## Run App Using a Cluster
+
+The app can be run using a cluster to take advantage of multi-core systems.
+
+```bash
+node index-cluster.js
 ```
